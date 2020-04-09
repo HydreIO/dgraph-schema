@@ -34,7 +34,7 @@ rules:
     no-param-reassign: ["error", { props: false }]
     import/prefer-default-export: 0
     no-bitwise: 0
-    no-console: ["error", { allow: ["warn", "error"] }]
+    no-console: 0
     lines-between-class-members: ["warn", always, { exceptAfterSingleLine: true }]
     consistent-return: 0
     no-plusplus: 0
