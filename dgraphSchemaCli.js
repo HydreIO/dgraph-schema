@@ -1,8 +1,10 @@
-const { program } = require('commander');
-const dgraph = require('dgraph-js');
-const grpc = require('grpc');
+import program from 'commander';
+import diff from 'deep-diff';
+import dgraph from 'dgraph-js';
+import grpc from 'grpc';
+import util from 'util';
 
-const util = require('util')
+import { schema, types } from './schema';
 
 const clientStub = new dgraph.DgraphClientStub(
   'localhost:9080',
@@ -18,8 +20,6 @@ uuid: string @index(exact) @upsert .
 hash: string .
 desc: int .
 `
-// const c = require('chalk');
-const { schema, types } = require('./schema');
 
 // - permet de definir un schema
 // - d'alter la db avec
@@ -137,6 +137,10 @@ const rawTypes = () => {
   return allTypes;
 }
 
+/* const removeDgraphData = unpreparedRes => {
+
+} */
+
 
 program.version('0.0.1');
 program.option('-p, --path <string>', 'path of the schema', './schema.js');
@@ -153,8 +157,7 @@ program.command('getSchema').action(async () => {
 program.command('createJsonSchema').action(() => {
   const jsonSchema = createJsonSchema();
   const jsonTypes = createJsonTypes();
-  const preparedSchema = prepareJson(jsonSchema, jsonTypes);
-  console.log(preparedSchema);
+  return prepareJson(jsonSchema, jsonTypes);
 });
 program.command('createRawSchema').action(async () => {
   const sSchema = rawSchema();
@@ -165,4 +168,18 @@ program.command('createRawSchema').action(async () => {
   await dgraphClient.alter(op);
   console.log(sRaw);
 });
+program.command('diff').action(async () => {
+  const jsonSchema = createJsonSchema();
+  const jsonTypes = createJsonTypes();
+  const newSchema = prepareJson(jsonSchema, jsonTypes);
+  const currentSchema = (await dgraphClient.newTxn().query('schema {}')).getJson();
+  // console.log(util.inspect(diff(newSchema, currentSchema), false, null, true))
+  diff(newSchema, currentSchema).forEach(difference => {
+    if (['N', 'D', 'E'].includes(difference.kind)) {
+      console.log(difference);
+    }
+  })
+  // console.log('New schema', newSchema);
+  // console.log('Current Schema', currentSchema);
+})
 program.parse(process.argv);
