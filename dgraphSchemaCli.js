@@ -43,12 +43,17 @@ const typeCheck = (type, object) => {
   const typeIsList = listTypes.some(value => value === type);
   if (!typeIsNotAList && !typeIsList) {
     throw new Error('Incorrect or missing type in predicate.');
+  } else if (typeIsList) {
+    object.type = type.slice(1, -1);
   } else {
     object.type = type;
   }
   if (typeIsList) {
     object.list = true;
   }
+  console.log('Type,', type);
+  console.log('Object:', object);
+  console.log('typeIsList', typeIsList);
 };
 
 const indexCheck = (aValues, object) => {
@@ -223,12 +228,11 @@ program.command('diff').action(async () => {
   const newSchema = prepareJson(jsonSchema, jsonTypes);
   const currentSchema = (await dgraphClient.newTxn().query('schema {}')).getJson();
   removeDgraphData(currentSchema);
-  console.log('New schema', newSchema);
-  console.log('Current Schema', currentSchema);
-  // orderAlphabetically(newSchema);
+
   newSchema.schema.sort(compareObjectPredicate);
   newSchema.types.sort(compareObjectName);
-  // console.log(newSchema);
+  // console.log('New schema', newSchema);
+  // console.log('Current Schema', currentSchema);
   diff(newSchema, currentSchema).forEach(difference => {
     if (['N', 'D', 'E'].includes(difference.kind)) {
       console.log(difference);
