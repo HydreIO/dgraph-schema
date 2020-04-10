@@ -11,15 +11,6 @@ const clientStub = new dgraph.DgraphClientStub(
   grpc.credentials.createInsecure(),
 );
 const dgraphClient = new dgraph.DgraphClient(clientStub);
-const rawString = `type user {
-  uuid
-  hash
-  desc
-}
-uuid: string @index(exact) @upsert .
-hash: string .
-desc: int .
-`
 
 // - permet de definir un schema
 // - d'alter la db avec
@@ -51,9 +42,6 @@ const typeCheck = (type, object) => {
   if (typeIsList) {
     object.list = true;
   }
-  console.log('Type,', type);
-  console.log('Object:', object);
-  console.log('typeIsList', typeIsList);
 };
 
 const indexCheck = (aValues, object) => {
@@ -220,7 +208,8 @@ program.command('createRawSchema').action(async () => {
   const sTypes = rawTypes();
   const sRaw = `${sTypes}\n${sSchema}`;
   const op = new dgraph.Operation();
-  op.setSchema(sRaw)
+  op.setSchema(sRaw);
+  await dgraphClient.alter(op);
 });
 program.command('diff').action(async () => {
   const jsonSchema = createJsonSchema();
@@ -228,15 +217,17 @@ program.command('diff').action(async () => {
   const newSchema = prepareJson(jsonSchema, jsonTypes);
   const currentSchema = (await dgraphClient.newTxn().query('schema {}')).getJson();
   removeDgraphData(currentSchema);
-
   newSchema.schema.sort(compareObjectPredicate);
   newSchema.types.sort(compareObjectName);
-  // console.log('New schema', newSchema);
-  // console.log('Current Schema', currentSchema);
-  diff(newSchema, currentSchema).forEach(difference => {
-    if (['N', 'D', 'E'].includes(difference.kind)) {
-      console.log(difference);
-    }
-  })
+  const differences = diff(newSchema, currentSchema);
+  if (typeof differences !== 'undefined') {
+    differences.forEach(difference => {
+      if (['N', 'D', 'E'].includes(difference.kind)) {
+        console.log(difference);
+      }
+    })
+  } else {
+    console.log('No differences between the 2 schemas.')
+  }
 })
 program.parse(process.argv);
