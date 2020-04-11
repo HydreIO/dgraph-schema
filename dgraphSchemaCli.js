@@ -18,30 +18,22 @@ const dgraphClient = new dgraph.DgraphClient(clientStub)
 // - allow --force to force alter
 
 const prepareValueString = predicate => {
-  const preparedArray = predicate.split(' ')
-  if (preparedArray[preparedArray.length - 1] === '.') {
-    preparedArray.pop()
-  } else {
-    throw new Error('Missing . at the end of predicate, or incorrect spacing.')
-  }
-  return preparedArray
+  const array = predicate.split(' ')
+  if (array.pop() !== '.') throw new Error('Missing "." at the end of predicate, or incorrect spacing.')
+  return array
 }
 
-const typeCheck = (type, object) => {
-  const normalTypes = ['default', 'bool', 'datetime', 'float', 'geo', 'int', 'password', 'string', 'uid']
-  const listTypes = ['[default]', '[bool]', '[datetime]', '[float]', '[geo]', '[int]', '[string]', '[uid]']
-  const typeIsNotAList = normalTypes.some(value => value === type)
-  const typeIsList = listTypes.some(value => value === type)
-  if (!typeIsNotAList && !typeIsList) {
-    throw new Error('Incorrect or missing type in predicate.')
-  } else if (typeIsList) {
-    object.type = type.slice(1, -1)
-  } else {
-    object.type = type
+const dgraph_types = ['default', 'bool', 'datetime', 'float', 'geo', 'int', 'password', 'string', 'uid']
+
+const typeCheck = type => {
+  let is_array
+  let raw_type = type
+  if (type.match(/\[.+\]/g)) {
+    is_array = true
+    raw_type = type.slice(1, -1)
   }
-  if (typeIsList) {
-    object.list = true
-  }
+  if (!dgraph_types.includes(raw_type)) throw new Error('Incorrect or missing type in predicate.')
+  return { type, is_array }
 }
 
 const indexCheck = (aValues, object) => {
@@ -79,9 +71,9 @@ const otherOptions = (aValues, object) => {
 const createJsonSchema = () => {
   const jsonSchema = []
   Object.entries(schema).forEach(([key, value]) => {
-    const object = { predicate: key }
     const aValues = prepareValueString(value)
-    typeCheck(aValues[0], object)
+    const { type, is_array } = typeCheck(aValues[0])
+    const object = { predicate: key, type, is_array }
     aValues.shift()
     indexCheck(aValues, object)
     otherOptions(aValues, object)
@@ -104,10 +96,7 @@ const createJsonTypes = () => {
   return jsonTypes
 }
 
-const prepareJson = (sch, typ) => ({
-  schema: sch,
-  types: typ,
-})
+const prepareJson = (schema, types) => ({ schema, types })
 
 const rawSchema = () => {
   let allPredicates = ''
