@@ -179,7 +179,6 @@ const compareObjectName = (objectA, objectB) => {
   return comparator;
 }
 
-
 program.version('0.0.1');
 program.option('-p, --path <string>', 'path of the schema', './schema.js');
 program.command('getSchema').action(async () => {
@@ -192,7 +191,7 @@ program.command('createJsonSchema').action(() => {
   const jsonTypes = createJsonTypes();
   return prepareJson(jsonSchema, jsonTypes);
 });
-program.command('createRawSchema').action(async () => {
+program.command('alter').action(async () => {
   const sSchema = rawSchema();
   const sTypes = rawTypes();
   const sRaw = `${sTypes}\n${sSchema}`;
@@ -216,14 +215,12 @@ program.command('diff').action(async () => {
       } */
       console.log(difference);
     })
+    // program.exitOverride(1);
   } else {
     console.log('No differences between the 2 schemas.')
   }
-  /* diff(newSchema, currentSchema).forEach(difference => {
-    if (['N', 'D', 'E'].includes(difference.kind)) {
-      console.log(difference);
-    }
-    console.log(difference);
-  }) */
 })
-program.parse(process.argv);
+
+const defaultLoop = () => {
+
+};
