@@ -55,3 +55,4 @@ rules:
     - expression
   import/no-named-as-default: 0
   no-restricted-syntax: 0
+  camelcase: 0
