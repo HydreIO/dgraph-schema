@@ -25,10 +25,10 @@ const main = async () => {
       log(c.underline.yellow('Incorrect action'))
       main();
     } else if (toDo === '1') {
-      const fetchedSchema = await helper.getSchema();
-      log('Response', fetchedSchema)
+      const fetched_schema = await helper.get_schema();
+      log('Response', fetched_schema)
     } else if (toDo === '2') {
-      const differences = await helper.getDifferences();
+      const differences = await helper.get_differences();
       console.log(differences);
       if (differences.length > 0) {
         process.exit(1);
@@ -38,7 +38,7 @@ const main = async () => {
   });
 };
 
-const alterSchema = async () => {
+const alter_schema = async () => {
   if (program.force) {
     console.log('Forced altering schema...');
   } else {
@@ -46,7 +46,7 @@ const alterSchema = async () => {
     // TODO Check for diff if there log them then exit 1
   }
   // TODO Handle Dgraph error
-  await helper.alterSchema();
+  await helper.alter_schema();
   log(c.greenBright('Successfully altered Dgraph schema.'));
   process.exit(0);
 }
@@ -72,7 +72,7 @@ program
   });
 
 program.command('alter').action(async () => {
-  alterSchema();
+  alter_schema();
 });
 
 program.parse(process.argv);

@@ -2,57 +2,57 @@ import diff from 'deep-diff';
 import dgraph from 'dgraph-js';
 import grpc from 'grpc';
 
-import { schema, types } from './schema';
+import { SCHEMA, TYPES } from './schema';
 
-const prepareValueString = predicate => {
-  const preparedArray = predicate.split(' ');
-  if (preparedArray[preparedArray.length - 1] === '.') {
-    preparedArray.pop();
+const prepare_value_string = predicate => {
+  const PREPARED_ARRAY = predicate.split(' ');
+  if (PREPARED_ARRAY[PREPARED_ARRAY.length - 1] === '.') {
+    PREPARED_ARRAY.pop();
   } else {
     throw new Error('Missing . at the end of predicate, or incorrect spacing.');
   }
-  return preparedArray;
+  return PREPARED_ARRAY;
 };
 
-const typeCheck = (type, object) => {
-  const normalTypes = ['default', 'bool', 'datetime', 'float', 'geo', 'int', 'password', 'string', 'uid'];
-  const listTypes = ['[default]', '[bool]', '[datetime]', '[float]', '[geo]', '[int]', '[string]', '[uid]'];
-  const typeIsNotAList = normalTypes.some(value => value === type);
-  const typeIsList = listTypes.some(value => value === type);
-  if (!typeIsNotAList && !typeIsList) {
+const type_check = (type, object) => {
+  const NORMAL_TYPES = ['default', 'bool', 'datetime', 'float', 'geo', 'int', 'password', 'string', 'uid'];
+  const LIST_TYPES = ['[default]', '[bool]', '[datetime]', '[float]', '[geo]', '[int]', '[string]', '[uid]'];
+  const TYPE_IS_NOT_ALIST = NORMAL_TYPES.some(value => value === type);
+  const TYPE_IS_LIST = LIST_TYPES.some(value => value === type);
+  if (!TYPE_IS_NOT_ALIST && !TYPE_IS_LIST) {
     throw new Error('Incorrect or missing type in predicate.');
-  } else if (typeIsList) {
+  } else if (TYPE_IS_LIST) {
     object.type = type.slice(1, -1);
   } else {
     object.type = type;
   }
-  if (typeIsList) {
+  if (TYPE_IS_LIST) {
     object.list = true;
   }
 };
 
-const indexCheck = (aValues, object) => {
-  const aTokenizer = [];
-  const index = aValues.some(value => {
+const index_check = (aValues, object) => {
+  const TOKENIZER_ARRAY = [];
+  const INDEX = aValues.some(value => {
     if (value.includes('@index')) {
       if (value.slice(6, 7) !== '(' || value.slice(-1) !== ')') {
         throw new Error('@index is invalid, missing parenthesis or there are spaces in tokenizer.');
       }
-      const fields = value.slice(7, -1).split(',');
-      fields.forEach(field => {
-        aTokenizer.push(field.trim());
+      const FIELDS = value.slice(7, -1).split(',');
+      FIELDS.forEach(field => {
+        TOKENIZER_ARRAY.push(field.trim());
       });
       return true
     }
     return false
   });
-  if (index) {
-    object.index = index;
-    object.tokenizer = aTokenizer;
+  if (INDEX) {
+    object.index = INDEX;
+    object.tokenizer = TOKENIZER_ARRAY;
   }
 };
 
-const otherOptions = (aValues, object) => {
+const other_options = (aValues, object) => {
   aValues.forEach(value => {
     if (value.includes('@upsert')) {
       object.upsert = true;
@@ -62,150 +62,150 @@ const otherOptions = (aValues, object) => {
   })
 }
 
-// Create a JSON schema by using our `schema` from our file
-const createJsonSchema = () => {
-  const jsonSchema = [];
-  Object.entries(schema).forEach(([key, value]) => {
-    const object = { predicate: key };
-    const aValues = prepareValueString(value);
-    typeCheck(aValues[0], object);
-    aValues.shift();
-    indexCheck(aValues, object);
-    otherOptions(aValues, object);
-    jsonSchema.push(object);
+// Create a JSON SCHEMA by using our `SCHEMA` from our file
+const create_json_schema = () => {
+  const JSON_SCHEMA = [];
+  Object.entries(SCHEMA).forEach(([key, value]) => {
+    const OBJECT = { predicate: key };
+    const PREDICATES_ARRAY = prepare_value_string(value);
+    type_check(PREDICATES_ARRAY[0], OBJECT);
+    PREDICATES_ARRAY.shift();
+    index_check(PREDICATES_ARRAY, OBJECT);
+    other_options(PREDICATES_ARRAY, OBJECT);
+    JSON_SCHEMA.push(OBJECT);
   });
-  return jsonSchema;
+  return JSON_SCHEMA;
 }
 
-const createJsonTypes = () => {
-  const jsonTypes = [];
-  Object.entries(types).forEach(([key, value]) => {
-    const object = { name: key };
-    const fields = [];
+const create_json_types = () => {
+  const JSON_TYPES = [];
+  Object.entries(TYPES).forEach(([key, value]) => {
+    const OBJECT = { name: key };
+    const FIELDS = [];
     value.forEach(field => {
-      fields.push({ name: field })
+      FIELDS.push({ name: field })
     });
-    object.fields = fields;
-    jsonTypes.push(object);
+    OBJECT.fields = FIELDS;
+    JSON_TYPES.push(OBJECT);
   });
-  return jsonTypes;
+  return JSON_TYPES;
 }
 
-const prepareJson = (sch, typ) => ({
-  schema: sch,
-  types: typ,
+const prepare_json = (json_schema, json_types) => ({
+  schema: json_schema,
+  types: json_types,
 });
 
-const rawSchema = () => {
-  let allPredicates = '';
-  Object.entries(schema).forEach(([key, value]) => {
-    allPredicates += `${key}: ${value}\n`;
+const raw_schema = () => {
+  let raw_predicates = '';
+  Object.entries(SCHEMA).forEach(([key, value]) => {
+    raw_predicates += `${key}: ${value}\n`;
   });
-  return allPredicates;
+  return raw_predicates;
 }
 
-const rawTypes = () => {
-  let allTypes = '';
-  Object.entries(types).forEach(([key, value]) => {
+const raw_types = () => {
+  let raw_types_string = '';
+  Object.entries(TYPES).forEach(([key, value]) => {
     let values = '';
-    value.forEach(subValue => {
-      values += `\n\t${subValue}`
+    value.forEach(sub_value => {
+      values += `\n\t${sub_value}`
     })
-    allTypes += `\ntype ${key} {${values}\n}`
+    raw_types_string += `\ntype ${key} {${values}\n}`
   });
 
-  return allTypes;
+  return raw_types_string;
 }
 
-const removeDgraphData = unpreparedSch => {
+const remove_dgraph_data = uneprepared_schema => {
   // Removing autogenerated fields by dbgraph
-  for (let i = 0; i < unpreparedSch.schema.length; i++) {
-    if (unpreparedSch.schema[i].predicate === 'dgraph.graphql.schema') {
-      unpreparedSch.schema.splice(i, 1);
+  for (let i = 0; i < uneprepared_schema.schema.length; i++) {
+    if (uneprepared_schema.schema[i].predicate === 'dgraph.graphql.schema') {
+      uneprepared_schema.schema.splice(i, 1);
       break;
     }
   }
-  for (let i = 0; i < unpreparedSch.schema.length; i++) {
-    if (unpreparedSch.schema[i].predicate === 'dgraph.type') {
-      unpreparedSch.schema.splice(i, 1);
+  for (let i = 0; i < uneprepared_schema.schema.length; i++) {
+    if (uneprepared_schema.schema[i].predicate === 'dgraph.type') {
+      uneprepared_schema.schema.splice(i, 1);
       break;
     }
   }
   // Removing autogenerated types
-  for (let i = 0; i < unpreparedSch.types.length; i++) {
-    if (unpreparedSch.types[i].name === 'dgraph.graphql') {
-      unpreparedSch.types.splice(i, 1);
+  for (let i = 0; i < uneprepared_schema.types.length; i++) {
+    if (uneprepared_schema.types[i].name === 'dgraph.graphql') {
+      uneprepared_schema.types.splice(i, 1);
       break;
     }
   }
 }
 
-const compareObjectPredicate = (objectA, objectB) => {
-  const predicateA = objectA.predicate.toUpperCase();
-  const predicateB = objectB.predicate.toUpperCase();
+const compare_predicate_object = (object_a, object_b) => {
+  const PREDICATE_A = object_a.predicate.toUpperCase();
+  const PREDICATE_B = object_b.predicate.toUpperCase();
 
   let comparator = 0;
-  if (predicateA > predicateB) {
+  if (PREDICATE_A > PREDICATE_B) {
     comparator = 1;
-  } else if (predicateA < predicateB) {
+  } else if (PREDICATE_A < PREDICATE_B) {
     comparator = -1;
   }
   return comparator;
 }
 
-const compareObjectName = (objectA, objectB) => {
-  const predicateA = objectA.name.toUpperCase();
-  const predicateB = objectB.name.toUpperCase();
+const compare_name_object = (object_a, object_b) => {
+  const PREDICATE_A = object_a.name.toUpperCase();
+  const PREDICATE_B = object_b.name.toUpperCase();
 
   let comparator = 0;
-  if (predicateA > predicateB) {
+  if (PREDICATE_A > PREDICATE_B) {
     comparator = 1;
-  } else if (predicateA < predicateB) {
+  } else if (PREDICATE_A < PREDICATE_B) {
     comparator = -1;
   }
   return comparator;
 }
 
-class dgraphHelper {
+class DgraphHelper {
   constructor() {
-    this.clientStub = new dgraph.DgraphClientStub('localhost:9080', grpc.credentials.createInsecure());
-    this.dgraphClient = new dgraph.DgraphClient(this.clientStub);
+    this.client_stub = new dgraph.DgraphClientStub('localhost:9080', grpc.credentials.createInsecure());
+    this.dgraph_client = new dgraph.DgraphClient(this.client_stub);
   }
 
-  async getSchema() {
-    return (await this.dgraphClient.newTxn().query('schema {}')).getJson();
+  async get_schema() {
+    return (await this.dgraph_client.newTxn().query('schema {}')).getJson();
   }
 
-  async getDifferences() {
-    const jsonSchema = createJsonSchema();
-    const jsonTypes = createJsonTypes();
-    const newSchema = prepareJson(jsonSchema, jsonTypes);
-    const currentSchema = (await this.dgraphClient.newTxn().query('schema {}')).getJson();
-    removeDgraphData(currentSchema);
-    newSchema.schema.sort(compareObjectPredicate);
-    newSchema.types.sort(compareObjectName);
-    const differences = diff(newSchema, currentSchema);
-    if (typeof differences !== 'undefined') {
-      differences.forEach(difference => {
+  async get_differences() {
+    const JSON_SCHEMA = create_json_schema();
+    const JSON_TYPES = create_json_types();
+    const NEW_SCHEMA = prepare_json(JSON_SCHEMA, JSON_TYPES);
+    const CURRENT_SCHEMA = (await this.dgraph_client.newTxn().query('schema {}')).getJson();
+    remove_dgraph_data(CURRENT_SCHEMA);
+    NEW_SCHEMA.schema.sort(compare_predicate_object);
+    NEW_SCHEMA.types.sort(compare_name_object);
+    const DIFFERENCES = diff(NEW_SCHEMA, CURRENT_SCHEMA);
+    if (typeof DIFFERENCES !== 'undefined') {
+      DIFFERENCES.forEach(difference => {
       /* if (['N', 'D', 'E'].includes(difference.kind)) {
         console.log(difference);
       } */
-        // console.log(difference);
+        console.log(difference);
       })
-      return differences
+      return DIFFERENCES
     }
     // console.log('No differences between the 2 schemas.');
     return 'No differences between the 2 schemas.';
   }
 
-  async alterSchema() {
-    const sSchema = rawSchema();
-    const sTypes = rawTypes();
-    const sRaw = `${sTypes}\n${sSchema}`;
-    const op = new dgraph.Operation();
-    op.setSchema(sRaw);
-    await this.dgraphClient.alter(op);
+  async alter_schema() {
+    const RAW_SCHEMA_STRING = raw_schema();
+    const RAW_TYPES_STRING = raw_types();
+    const RAW_STRING = `${RAW_TYPES_STRING}\n${RAW_SCHEMA_STRING}`;
+    const OPERATION = new dgraph.Operation();
+    OPERATION.setSchema(RAW_STRING);
+    await this.dgraph_client.alter(OPERATION);
   }
 }
 
-export default dgraphHelper;
+export default DgraphHelper;
