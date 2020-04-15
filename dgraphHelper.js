@@ -166,6 +166,19 @@ const compare_name_object = (object_a, object_b) => {
   return comparator;
 }
 
+const compare_types_fields = (field_a, field_b) => {
+  const TYPE_A = field_a.name.toUpperCase();
+  const TYPE_B = field_b.name.toUpperCase();
+
+  let comparator = 0;
+  if (TYPE_A > TYPE_B) {
+    comparator = 1;
+  } else if (TYPE_A < TYPE_B) {
+    comparator = -1;
+  }
+  return comparator;
+}
+
 class DgraphHelper {
   constructor() {
     this.client_stub = new dgraph.DgraphClientStub('localhost:9080', grpc.credentials.createInsecure());
@@ -184,7 +197,7 @@ class DgraphHelper {
     remove_dgraph_data(CURRENT_SCHEMA);
     NEW_SCHEMA.schema.sort(compare_predicate_object);
     NEW_SCHEMA.types.sort(compare_name_object);
-    const DIFFERENCES = diff(NEW_SCHEMA, CURRENT_SCHEMA);
+    const DIFFERENCES = diff(NEW_SCHEMA, CURRENT_SCHEMA.types);
     if (typeof DIFFERENCES !== 'undefined') {
       DIFFERENCES.forEach(difference => {
       /* if (['N', 'D', 'E'].includes(difference.kind)) {
@@ -197,6 +210,58 @@ class DgraphHelper {
     // console.log('No differences between the 2 schemas.');
     return 'No differences between the 2 schemas.';
   }
+
+  async test() {
+    const JSON_SCHEMA = create_json_schema();
+    const JSON_TYPES = create_json_types();
+    const NEW_SCHEMA = prepare_json(JSON_SCHEMA, JSON_TYPES);
+    const CURRENT_SCHEMA = (await this.dgraph_client.newTxn().query('schema {}')).getJson();
+    remove_dgraph_data(CURRENT_SCHEMA);
+    NEW_SCHEMA.schema.sort(compare_predicate_object);
+    NEW_SCHEMA.types.sort(compare_name_object);
+    CURRENT_SCHEMA.schema.sort(compare_predicate_object);
+    CURRENT_SCHEMA.types.sort(compare_name_object);
+    const TYPES_TO_CHECK = [];
+    const MISSING_TYPES = [];
+    NEW_SCHEMA.types.forEach(type => {
+      type.fields.sort(compare_types_fields);
+      TYPES_TO_CHECK.push(type.name)
+    });
+    CURRENT_SCHEMA.types.forEach(type => {
+      type.fields.sort(compare_types_fields);
+      if (!TYPES_TO_CHECK.includes(type.name)) {
+        MISSING_TYPES.push(type.name)
+      }
+    })
+    console.log('All types to check', TYPES_TO_CHECK)
+    console.log('Missing types in new types', MISSING_TYPES);
+    TYPES_TO_CHECK.forEach(type => {
+      const NEW_OBJECT = JSON_TYPES.find(object => object.name === type);
+      const CURRENT_OBJECT = CURRENT_SCHEMA.types.find(object => object.name === type);
+      const DIFFERENCES = diff(CURRENT_OBJECT, NEW_OBJECT); // Can have multiple diff for 1 object
+      if (typeof DIFFERENCES !== 'undefined') {
+        DIFFERENCES.forEach(difference => {
+          if (['N', 'D', 'E'].includes(difference.kind)) {
+            console.log(difference);
+            if (difference.kind === 'E') {
+              console.log('This object was edited at path:', difference.path[0]);
+              console.log(CURRENT_OBJECT);
+              console.log('Expected', difference.rhs, 'found', difference.lhs)
+            } else if (difference.kind === 'N') {
+              console.log('This object was added');
+              console.log(NEW_OBJECT);
+            }
+          }
+        })
+      }
+    });
+    MISSING_TYPES.forEach(type => {
+      const DELETED_OBJECT = CURRENT_SCHEMA.types.find(object => object.name === type);
+      console.log('This object has been deleted:');
+      console.log(DELETED_OBJECT)
+    })
+  }
+
 
   async alter_schema() {
     const RAW_SCHEMA_STRING = raw_schema();
