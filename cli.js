@@ -4,11 +4,7 @@ import program from 'commander';
 import fs from 'fs';
 import readline from 'readline';
 
-import DgraphHelper from './dgraphHelper';
-
-const helper = new DgraphHelper();
-
-const { log } = console;
+import helper from './dgraphHelper';
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -16,23 +12,28 @@ const rl = readline.createInterface({
 });
 
 const main = async () => {
-  log(c.blue('Dgraph schema CLI'));
-  log('Please enter en action to continue:')
-  log('1 - Get dgraph schema')
-  log('2 - Alter dgraph schema')
+  console.log(c.blue('Dgraph schema CLI'));
+  console.log('Please enter en action to continue:')
+  console.log('1 - Get dgraph schema')
+  console.log('2 - Alter dgraph schema')
   rl.question('What to do next ?', async toDo => {
-    if (toDo !== '1' && toDo !== '2') {
-      log(c.underline.yellow('Incorrect action'))
+    if (toDo !== '1' && toDo !== '2' && toDo !== '3') {
+      console.log(c.underline.yellow('Incorrect action'))
       main();
     } else if (toDo === '1') {
       const fetched_schema = await helper.get_schema();
-      log('Response', fetched_schema)
+      console.log('Response', fetched_schema)
     } else if (toDo === '2') {
       const differences = await helper.get_differences();
       console.log(differences);
       if (differences.length > 0) {
         process.exit(1);
       }
+    } else if (toDo === '3') {
+      // await helper.test();
+      const CLIENT = helper.create_client();
+      // console.log(await helper.get_schema(CLIENT));
+      await helper.diff_checker(CLIENT);
     }
     rl.close();
   });
@@ -47,7 +48,7 @@ const alter_schema = async () => {
   }
   // TODO Handle Dgraph error
   await helper.alter_schema();
-  log(c.greenBright('Successfully altered Dgraph schema.'));
+  console.log(c.greenBright('Successfully altered Dgraph schema.'));
   process.exit(0);
 }
 
