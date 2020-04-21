@@ -353,7 +353,9 @@ const diff_checker = async client => {
   const CONFLICTS = [...TYPES_DIFFERENCES[0], ...SCHEMA_DIFFERENCES[0]];
   const ADDED = [...TYPES_DIFFERENCES[1], ...SCHEMA_DIFFERENCES[1]];
 
-  if (CONFLICTS.length > 0) {
+  return [CONFLICTS, ADDED];
+
+  /* if (CONFLICTS.length > 0) {
     console.log('Can\'t alter schema, there are conflicts.');
     CONFLICTS.forEach(element => {
       console.log(element);
@@ -366,7 +368,7 @@ const diff_checker = async client => {
     await alter_schema(client);
   } else {
     console.log('Same schema, no alter needed');
-  }
+  } */
 }
 
 export default {
