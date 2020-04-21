@@ -213,23 +213,25 @@ const diff_types_checker = (new_schema, current_schema) => {
     const DIFFERENCES = diff(CURRENT_OBJECT, NEW_OBJECT);
     if (typeof DIFFERENCES !== 'undefined') {
       DIFFERENCES.forEach(difference => {
-        if (['N', 'D', 'E'].includes(difference.kind)) {
-          if (difference.kind === 'E') {
-            CONFLICTS.push({
-              message: `This object was edited at path:${difference.path[0]}`,
-              category: 'types',
-              object: { ...CURRENT_OBJECT },
-              additional_information: `Expected${difference.rhs}found${difference.lhs}`,
-            });
-          } else if (difference.kind === 'N') {
-            ADDED.push({
-              message: 'This new object was added.',
-              category: 'types',
-              object: { ...NEW_OBJECT },
-            });
-          }
+        if (difference.kind === 'E') {
+          CONFLICTS.push({
+            message: `This object was edited at path: ${difference.path[0]}`,
+            category: 'types',
+            object: { ...CURRENT_OBJECT },
+            additional_information: `Expected ${difference.lhs} found ${difference.rhs}`,
+          });
+        } else if (difference.kind === 'N') {
+          ADDED.push({
+            message: 'This new object was added.',
+            category: 'types',
+            object: { ...NEW_OBJECT },
+          });
         } else if (difference.kind === 'A') {
-          console.log(difference);
+          CONFLICTS.push({
+            message: 'Change in the fields in this object.',
+            category: 'types',
+            object: CURRENT_OBJECT,
+          });
         }
       });
     }
@@ -265,7 +267,7 @@ const diff_schema_checker = (new_schema, current_schema) => {
   });
   // Checking diff for each type if there are any
   PREDICATES_TO_CHECK.forEach(predicate => {
-    const NEW_OBJECT = new_schema.types.find(object => object.predicate === predicate);
+    const NEW_OBJECT = new_schema.schema.find(object => object.predicate === predicate);
     const CURRENT_OBJECT = current_schema.schema.find(object => object.predicate === predicate);
     const DIFFERENCES = diff(CURRENT_OBJECT, NEW_OBJECT); // Can have multiple diff for 1 object
     if (typeof DIFFERENCES !== 'undefined') {
@@ -278,10 +280,18 @@ const diff_schema_checker = (new_schema, current_schema) => {
             additional_information: `Expected${difference.rhs}found${difference.lhs}`,
           });
         } else if (difference.kind === 'N') {
-          ADDED.push({
-            message: 'This object was added.',
-            object: { ...NEW_OBJECT },
-          });
+          if (typeof CURRENT_OBJECT === 'undefined') {
+            ADDED.push({
+              message: 'This object was added.',
+              object: { ...NEW_OBJECT },
+            });
+          } else {
+            CONFLICTS.push({
+              message: 'This object was edited',
+              category: 'schema',
+              object: { ...NEW_OBJECT },
+            });
+          }
         } else if (typeof NEW_OBJECT !== 'undefined' && typeof NEW_OBJECT.index !== 'undefined' && NEW_OBJECT.index === true && difference.kind === 'A') {
           CONFLICTS.push({
             message: 'Tokenizer of this objects was edited.',
@@ -324,6 +334,15 @@ const raw_types = () => {
   return raw_types_string;
 }
 
+const alter_schema = async client => {
+  const RAW_SCHEMA_STRING = raw_schema();
+  const RAW_TYPES_STRING = raw_types();
+  const RAW_STRING = `${RAW_TYPES_STRING}\n${RAW_SCHEMA_STRING}`;
+  const OPERATION = new dgraph.Operation();
+  OPERATION.setSchema(RAW_STRING);
+  await client.alter(OPERATION);
+}
+
 const diff_checker = async client => {
   // Fetching both schemas
   const NEW_SCHEMA = prepare_new_schema();
@@ -334,10 +353,7 @@ const diff_checker = async client => {
   const CONFLICTS = [...TYPES_DIFFERENCES[0], ...SCHEMA_DIFFERENCES[0]];
   const ADDED = [...TYPES_DIFFERENCES[1], ...SCHEMA_DIFFERENCES[1]];
 
-  console.log('Conflicts:', CONFLICTS);
-  console.log('Added:', ADDED);
-
-  /*  if (CONFLICTS.length > 0) {
+  if (CONFLICTS.length > 0) {
     console.log('Can\'t alter schema, there are conflicts.');
     CONFLICTS.forEach(element => {
       console.log(element);
@@ -347,19 +363,10 @@ const diff_checker = async client => {
     ADDED.forEach(element => {
       console.log(element);
     });
+    await alter_schema(client);
   } else {
     console.log('Same schema, no alter needed');
-  } */
-}
-
-
-const alter_schema = async () => {
-  const RAW_SCHEMA_STRING = raw_schema();
-  const RAW_TYPES_STRING = raw_types();
-  const RAW_STRING = `${RAW_TYPES_STRING}\n${RAW_SCHEMA_STRING}`;
-  const OPERATION = new dgraph.Operation();
-  OPERATION.setSchema(RAW_STRING);
-  await this.dgraph_client.alter(OPERATION);
+  }
 }
 
 export default {
