@@ -3,6 +3,7 @@ import c from 'chalk';
 import program from 'commander';
 import fs from 'fs';
 import readline from 'readline';
+import util from 'util';
 
 import helper from './dgraphHelper';
 
@@ -10,6 +11,37 @@ const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
+
+const get_schema = async () => {
+  const CLIENT = helper.create_client();
+  const fetched_schema = await helper.get_schema(CLIENT);
+  console.log(util.inspect(fetched_schema, false, null, true));
+}
+
+const get_diff = async client => helper.diff_checker(client)
+
+const alter_schema = async (client, force_flag) => {
+  const DIFFERENCES = await get_diff(client);
+  const CONFLICTS = DIFFERENCES[0];
+  const ADDED = DIFFERENCES[1];
+  if (force_flag) {
+    console.log('Force altering schema');
+    await helper.alter_schema(client);
+  } else if (CONFLICTS.length > 0) {
+    console.log('Can\'t alter schema, there are conflicts.');
+    CONFLICTS.forEach(element => {
+      console.log(element);
+    });
+  } else if (ADDED.length > 0) {
+    console.log('New changes only.');
+    ADDED.forEach(element => {
+      console.log(element);
+    });
+    await helper.alter_schema(client);
+  } else {
+    console.log('Same schema, no alter needed');
+  }
+}
 
 const main = async () => {
   console.log(c.blue('Dgraph schema CLI'));
@@ -21,8 +53,7 @@ const main = async () => {
       console.log(c.underline.yellow('Incorrect action'))
       main();
     } else if (toDo === '1') {
-      const fetched_schema = await helper.get_schema();
-      console.log('Response', fetched_schema)
+      get_schema();
     } else if (toDo === '2') {
       const differences = await helper.get_differences();
       console.log(differences);
@@ -30,27 +61,14 @@ const main = async () => {
         process.exit(1);
       }
     } else if (toDo === '3') {
-      // await helper.test();
+      const FORCE_FLAG = !!program.force;
       const CLIENT = helper.create_client();
-      // console.log(await helper.get_schema(CLIENT));
-      await helper.diff_checker(CLIENT);
+      await helper.diff_checker(CLIENT, FORCE_FLAG);
     }
     rl.close();
   });
 };
 
-const alter_schema = async () => {
-  if (program.force) {
-    console.log('Forced altering schema...');
-  } else {
-    console.log('Altering schema...');
-    // TODO Check for diff if there log them then exit 1
-  }
-  // TODO Handle Dgraph error
-  await helper.alter_schema();
-  console.log(c.greenBright('Successfully altered Dgraph schema.'));
-  process.exit(0);
-}
 
 program
   .version('0.0.1')
@@ -72,8 +90,38 @@ program
     }
   });
 
-program.command('alter').action(async () => {
-  alter_schema();
+program.command('get_schema').action(async () => {
+  await get_schema();
+  process.exit(0);
+});
+
+program.command('get_diff').action(async () => {
+  const CLIENT = helper.create_client();
+  const DIFFERENCES = await get_diff(CLIENT);
+  const CONFLICTS = DIFFERENCES[0];
+  const ADDED = DIFFERENCES[1];
+
+  if (CONFLICTS.length > 0) {
+    console.log('Can\'t alter schema, there are conflicts.');
+    CONFLICTS.forEach(element => {
+      console.log(element);
+    });
+  } else if (ADDED.length > 0) {
+    console.log('New changes only.');
+    ADDED.forEach(element => {
+      console.log(element);
+    });
+  } else {
+    console.log('Same schema, no alter needed');
+  }
+  process.exit(0);
+});
+
+program.command('alter_schema').action(async () => {
+  const FORCE_FLAG = !!program.force;
+  const CLIENT = helper.create_client();
+  await alter_schema(CLIENT, FORCE_FLAG);
+  process.exit(0);
 });
 
 program.parse(process.argv);
