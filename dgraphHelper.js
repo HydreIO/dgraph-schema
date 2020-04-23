@@ -276,6 +276,7 @@ const diff_schema_checker = (new_schema, current_schema) => {
     const DIFFERENCES = diff(CURRENT_OBJECT, NEW_OBJECT); // Can have multiple diff for 1 object
     if (typeof DIFFERENCES !== 'undefined') {
       DIFFERENCES.forEach(difference => {
+        console.log(difference);
         if (difference.kind === 'E') {
           CONFLICTS.push({
             message: `This object was edited at path:${difference.path[0]}`,
@@ -292,6 +293,14 @@ const diff_schema_checker = (new_schema, current_schema) => {
           } else {
             CONFLICTS.push({
               message: 'This object was edited',
+              category: 'schema',
+              object: { ...NEW_OBJECT },
+            });
+          }
+        } else if (difference.kind === 'D') {
+          if (difference.path[0] === 'list') {
+            CONFLICTS.push({
+              message: 'This object was edited, should be a list.',
               category: 'schema',
               object: { ...NEW_OBJECT },
             });
