@@ -297,14 +297,12 @@ const diff_schema_checker = (new_schema, current_schema) => {
               object: { ...NEW_OBJECT },
             });
           }
-        } else if (difference.kind === 'D') {
-          if (difference.path[0] === 'list') {
-            CONFLICTS.push({
-              message: 'This object was edited, should be a list.',
-              category: 'schema',
-              object: { ...NEW_OBJECT },
-            });
-          }
+        } else if (difference.kind === 'D' && difference.path[0] === 'list') {
+          CONFLICTS.push({
+            message: 'This object was edited, should be a list.',
+            category: 'schema',
+            object: { ...NEW_OBJECT },
+          });
         } else if (typeof NEW_OBJECT !== 'undefined' && typeof NEW_OBJECT.index !== 'undefined' && NEW_OBJECT.index === true && difference.kind === 'A') {
           CONFLICTS.push({
             message: 'Tokenizer of this objects was edited.',
