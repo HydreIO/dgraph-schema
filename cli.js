@@ -43,7 +43,7 @@ const alter_schema = async (client, force_flag) => {
   const DIFFERENCES = await get_diff(client);
   print_diff(DIFFERENCES);
   if (force_flag) {
-    console.log('Force altering schema');
+    console.log(c.bgRedBright(' Force altering schema. '));
     await helper.alter_schema(client);
   } else if (DIFFERENCES[1].length > 0) {
     await helper.alter_schema(client);
@@ -53,12 +53,12 @@ const alter_schema = async (client, force_flag) => {
 const main = async () => {
   console.log(c.blueBright('\nDgraph schema CLI\n'));
   console.log('Please enter en action to continue:');
-  console.log('1 - Get current dgraph schema');
-  console.log('2 - Diff output only');
-  console.log('3 - Alter dgraph schema with diff output')
+  console.log('1 - Get current dgraph schema.');
+  console.log('2 - Diff output only.');
+  console.log('3 - Alter dgraph schema with diff output.');
   rl.question('\nWhat to do next ? ', async toDo => {
     if (toDo !== '1' && toDo !== '2' && toDo !== '3') {
-      console.log(c.underline.yellow('Incorrect action'))
+      console.log(c.underline.yellow('Incorrect action'));
       main();
     } else if (toDo === '1') {
       console.log(c.greenBright('\nCurrent Dgraph schema:'));
@@ -93,7 +93,7 @@ program
           console.error(c.redBright('File ./schema.js does not exists. It is required to continue.'));
         }
       } catch (error) {
-        console.error(error)
+        console.error(error);
       }
       process.exit(0);
     }
