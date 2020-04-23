@@ -4,8 +4,10 @@ import grpc from 'grpc';
 
 import { SCHEMA, TYPES } from './schema';
 
+const DB_URL = process.env.DGRAPH_URL;
+
 const create_client = () => {
-  const CLIENT_STUB = new dgraph.DgraphClientStub('localhost:9080', grpc.credentials.createInsecure());
+  const CLIENT_STUB = new dgraph.DgraphClientStub(DB_URL, grpc.credentials.createInsecure());
   return new dgraph.DgraphClient(CLIENT_STUB);
 }
 
