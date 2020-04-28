@@ -309,13 +309,7 @@ const diff_schema_checker = (new_schema, current_schema) => {
   return [CONFLICTS, ADDED];
 }
 
-const raw_schema = () => {
-  let raw_predicates = '';
-  Object.entries(SCHEMA).forEach(([key, value]) => {
-    raw_predicates += `${key}: ${value}\n`;
-  });
-  return raw_predicates;
-}
+const raw_schema = () => Object.entries(SCHEMA).map(([key, value]) => `${key}: ${value}`).join('\n')
 
 const raw_types = () => {
   let raw_types_string = '';
