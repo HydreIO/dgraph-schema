@@ -51,18 +51,18 @@ program
   .option('-F, --force', 'Used to force alter a schema even if there are conflicts.')
   .action(cmd => {
     const { args } = cmd;
-    if (args.length === 0) {
-      console.log(c.yellowBright('No action specified'));
-      process.exit(0);
-    } else {
-      try {
-        if (!fs.existsSync('./schemaa.js')) {
-          console.error(c.redBright('File ./schema.js does not exists. It is required to continue.'));
-        }
-      } catch (error) {
-        console.error(error);
+    try {
+      if (!fs.existsSync('./schemaa.js')) {
+        console.error(c.redBright('File ./schema.js does not exists. It is required to continue.'));
+        process.exit(1);
       }
-      process.exit(0);
+    } catch (error) {
+      console.error(error);
+    }
+    if (args.length === 0) {
+      console.log(c.yellowBright('No action specified.'));
+    } else {
+      console.log(c.yellowBright('Wrong action specified.'));
     }
   });
 
