@@ -309,16 +309,16 @@ const diff_schema_checker = (new_schema, current_schema) => {
   return [CONFLICTS, ADDED];
 }
 
-const raw_schema = () => Object.entries(SCHEMA).map(([key, value]) => `${key}: ${value}`).join('\n')
+const format_to_raw_schema = () => Object.entries(SCHEMA).map(([key, value]) => `${key}: ${value}`).join('\n')
 
-const raw_types = () => Object.entries(TYPES).map(([key, value]) => {
+const format_to_raw_types = () => Object.entries(TYPES).map(([key, value]) => {
   const values = value.map(sub_value => `\n\t${sub_value}`).join('');
   return `\ntype ${key} {${values}\n}`;
 }).join('')
 
 const alter_schema = async client => {
-  const RAW_SCHEMA_STRING = raw_schema();
-  const RAW_TYPES_STRING = raw_types();
+  const RAW_SCHEMA_STRING = format_to_raw_schema();
+  const RAW_TYPES_STRING = format_to_raw_types();
   const RAW_STRING = `${RAW_TYPES_STRING}\n${RAW_SCHEMA_STRING}`;
   const OPERATION = new dgraph.Operation();
   OPERATION.setSchema(RAW_STRING);
