@@ -35,7 +35,7 @@ const print_diff = differences => {
       console.log(element);
     });
   } else {
-    console.log(c.greenBright('Same schema, no alter needed.'));
+    console.log(c.greenBright('Same schema, no alteration required.'));
   }
 }
 
