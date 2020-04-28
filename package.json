@@ -5,7 +5,7 @@
   "main": "index.js",
 	"type": "module",
   "scripts": {
-    "cli": "node --experimental-specifier-resolution=node cli.js",
+    "cli": "node --experimental-specifier-resolution=node --harmony cli.js",
     "lint": "eslint --color --ext .js ."
   },
   "author": "",
