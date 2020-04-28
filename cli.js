@@ -8,25 +8,25 @@ import helper from './dgraphHelper';
 
 
 const get_schema = async () => {
-  const CLIENT = helper.create_client();
-  const fetched_schema = await helper.get_schema(CLIENT);
+  const client = helper.create_client();
+  const fetched_schema = await helper.get_schema(client);
   console.log(util.inspect(fetched_schema, false, null, true));
 }
 
 const get_diff = async client => helper.diff_checker(client);
 
 const print_diff = differences => {
-  const CONFLICTS = differences[0];
-  const ADDED = differences[1];
+  const conflicts = differences[0];
+  const added = differences[1];
 
-  if (CONFLICTS.length > 0) {
+  if (conflicts.length > 0) {
     console.log(c.redBright('Can\'t alter schema, there are conflicts.'));
-    CONFLICTS.forEach(element => {
+    conflicts.forEach(element => {
       console.log(element);
     });
-  } else if (ADDED.length > 0) {
+  } else if (added.length > 0) {
     console.log(c.greenBright('New changes only.'));
-    ADDED.forEach(element => {
+    added.forEach(element => {
       console.log(element);
     });
   } else {
@@ -35,12 +35,12 @@ const print_diff = differences => {
 }
 
 const alter_schema = async (client, force_flag) => {
-  const DIFFERENCES = await get_diff(client);
-  print_diff(DIFFERENCES);
+  const differences = await get_diff(client);
+  print_diff(differences);
   if (force_flag) {
     console.log(c.bgRedBright(' Forcing schema alteration. '));
     await helper.alter_schema(client);
-  } else if (DIFFERENCES[1].length > 0) {
+  } else if (differences[1].length > 0) {
     await helper.alter_schema(client);
   }
 }
@@ -71,15 +71,15 @@ program.command('get_schema').action(async () => {
 });
 
 program.command('get_diff').action(async () => {
-  const CLIENT = helper.create_client();
-  const DIFFERENCES = await get_diff(CLIENT);
-  print_diff(DIFFERENCES);
+  const client = helper.create_client();
+  const differences = await get_diff(client);
+  print_diff(differences);
 });
 
 program.command('alter_schema').action(async () => {
-  const FORCE_FLAG = !!program.force;
-  const CLIENT = helper.create_client();
-  await alter_schema(CLIENT, FORCE_FLAG);
+  const force_flag = !!program.force;
+  const client = helper.create_client();
+  await alter_schema(client, force_flag);
 });
 
 program.parse(process.argv);
