@@ -311,18 +311,10 @@ const diff_schema_checker = (new_schema, current_schema) => {
 
 const raw_schema = () => Object.entries(SCHEMA).map(([key, value]) => `${key}: ${value}`).join('\n')
 
-const raw_types = () => {
-  let raw_types_string = '';
-  Object.entries(TYPES).forEach(([key, value]) => {
-    let values = '';
-    value.forEach(sub_value => {
-      values += `\n\t${sub_value}`
-    });
-    raw_types_string += `\ntype ${key} {${values}\n}`;
-  });
-
-  return raw_types_string;
-}
+const raw_types = () => Object.entries(TYPES).map(([key, value]) => {
+  const values = value.map(sub_value => `\n\t${sub_value}`).join('');
+  return `\ntype ${key} {${values}\n}`;
+}).join('')
 
 const alter_schema = async client => {
   const RAW_SCHEMA_STRING = raw_schema();
