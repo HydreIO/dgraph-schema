@@ -251,18 +251,10 @@ const diff_types_checker = (new_schema, current_schema) => {
 const diff_schema_checker = (new_schema, current_schema) => {
   const CONFLICTS = [];
   const ADDED = [];
-  const PREDICATES_TO_CHECK = [];
-  const MISSING_PREDICATES = [];
-
-  new_schema.schema.forEach(element => {
-    PREDICATES_TO_CHECK.push(element.predicate);
-  });
-
-  current_schema.schema.forEach(element => {
-    if (!PREDICATES_TO_CHECK.includes(element.predicate)) {
-      MISSING_PREDICATES.push(element.predicate);
-    }
-  });
+  const PREDICATES_TO_CHECK = new_schema.schema.map(({ predicate }) => predicate);
+  const MISSING_PREDICATES = current_schema.schema
+    .filter(({ predicate }) => !PREDICATES_TO_CHECK.includes(predicate))
+    .map(({ predicate }) => predicate);
 
   PREDICATES_TO_CHECK.forEach(predicate => {
     const NEW_OBJECT = new_schema.schema.find(object => object.predicate === predicate);
