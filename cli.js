@@ -2,15 +2,10 @@
 import c from 'chalk';
 import program from 'commander';
 import fs from 'fs';
-import readline from 'readline';
 import util from 'util';
 
 import helper from './dgraphHelper';
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
 
 const get_schema = async () => {
   const CLIENT = helper.create_client();
@@ -50,38 +45,6 @@ const alter_schema = async (client, force_flag) => {
   }
 }
 
-const main = async () => {
-  console.log(c.blueBright('\nDgraph schema CLI\n'));
-  console.log('Please enter en action to continue:');
-  console.log('1 - Get current dgraph schema.');
-  console.log('2 - Diff output only.');
-  console.log('3 - Alter dgraph schema with diff output.');
-  try {
-    rl.question('\nWhat to do next ? ', async toDo => {
-      if (toDo !== '1' && toDo !== '2' && toDo !== '3') {
-        console.log(c.underline.yellow('Incorrect action'));
-        main();
-      } else if (toDo === '1') {
-        console.log(c.greenBright('\nCurrent Dgraph schema:'));
-        get_schema();
-        rl.close();
-      } else if (toDo === '2') {
-        const CLIENT = helper.create_client();
-        const DIFFERENCES = await get_diff(CLIENT);
-        print_diff(DIFFERENCES);
-        rl.close();
-      } else if (toDo === '3') {
-        const FORCE_FLAG = !!program.force;
-        const CLIENT = helper.create_client();
-        await helper.diff_checker(CLIENT, FORCE_FLAG);
-        rl.close();
-      }
-    });
-  } catch (error) {
-    console.error(error)
-  }
-};
-
 
 program
   .version('0.0.1')
@@ -89,9 +52,9 @@ program
   .action(cmd => {
     const { args } = cmd;
     if (args.length === 0) {
-      main();
+      console.log(c.yellowBright('No action specified'));
+      process.exit(0);
     } else {
-      console.log('There are args:', args);
       try {
         if (!fs.existsSync('./schemaa.js')) {
           console.error(c.redBright('File ./schema.js does not exists. It is required to continue.'));
