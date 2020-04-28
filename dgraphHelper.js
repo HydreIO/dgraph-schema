@@ -4,10 +4,8 @@ import grpc from 'grpc';
 
 import { schema, types } from './schema';
 
-const { DB_URL: HOST } = process.env;
-
-const create_client = () => {
-  const client_stub = new dgraph.DgraphClientStub(HOST, grpc.credentials.createInsecure());
+const create_client = host => {
+  const client_stub = new dgraph.DgraphClientStub(host, grpc.credentials.createInsecure());
   return new dgraph.DgraphClient(client_stub);
 }
 

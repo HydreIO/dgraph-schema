@@ -6,14 +6,7 @@ import util from 'util';
 
 import helper from './dgraphHelper';
 
-
-const get_schema = async () => {
-  const client = helper.create_client();
-  const fetched_schema = await helper.get_schema(client);
-  console.log(util.inspect(fetched_schema, false, null, true));
-}
-
-const get_diff = async client => helper.diff_checker(client);
+const { DB_URL: HOST } = process.env;
 
 const print_diff = differences => {
   const conflicts = differences[0];
@@ -33,18 +26,6 @@ const print_diff = differences => {
     console.log(c.greenBright('Same schema, no alteration required.'));
   }
 }
-
-const alter_schema = async (client, force_flag) => {
-  const differences = await get_diff(client);
-  print_diff(differences);
-  if (force_flag) {
-    console.log(c.bgRedBright(' Forcing schema alteration. '));
-    await helper.alter_schema(client);
-  } else if (differences[1].length > 0) {
-    await helper.alter_schema(client);
-  }
-}
-
 
 program
   .version('0.0.1')
@@ -67,19 +48,28 @@ program
   });
 
 program.command('get_schema').action(async () => {
-  await get_schema();
+  const client = helper.create_client(HOST);
+  const fetched_schema = await helper.get_schema(client);
+  console.log(util.inspect(fetched_schema, false, null, true));
 });
 
 program.command('get_diff').action(async () => {
   const client = helper.create_client();
-  const differences = await get_diff(client);
+  const differences = await helper.diff_checker(client);
   print_diff(differences);
 });
 
 program.command('alter_schema').action(async () => {
   const force_flag = !!program.force;
   const client = helper.create_client();
-  await alter_schema(client, force_flag);
+  const differences = await helper.diff_checker(client);
+  print_diff(differences);
+  if (force_flag) {
+    console.log(c.bgRedBright(' Forcing schema alteration. '));
+    await helper.alter_schema(client);
+  } else if (differences[1].length > 0) {
+    await helper.alter_schema(client);
+  }
 });
 
 program.parse(process.argv);
