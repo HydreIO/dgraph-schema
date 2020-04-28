@@ -56,26 +56,30 @@ const main = async () => {
   console.log('1 - Get current dgraph schema.');
   console.log('2 - Diff output only.');
   console.log('3 - Alter dgraph schema with diff output.');
-  rl.question('\nWhat to do next ? ', async toDo => {
-    if (toDo !== '1' && toDo !== '2' && toDo !== '3') {
-      console.log(c.underline.yellow('Incorrect action'));
-      main();
-    } else if (toDo === '1') {
-      console.log(c.greenBright('\nCurrent Dgraph schema:'));
-      get_schema();
-      rl.close();
-    } else if (toDo === '2') {
-      const CLIENT = helper.create_client();
-      const DIFFERENCES = await get_diff(CLIENT);
-      print_diff(DIFFERENCES);
-      rl.close();
-    } else if (toDo === '3') {
-      const FORCE_FLAG = !!program.force;
-      const CLIENT = helper.create_client();
-      await helper.diff_checker(CLIENT, FORCE_FLAG);
-      rl.close();
-    }
-  });
+  try {
+    rl.question('\nWhat to do next ? ', async toDo => {
+      if (toDo !== '1' && toDo !== '2' && toDo !== '3') {
+        console.log(c.underline.yellow('Incorrect action'));
+        main();
+      } else if (toDo === '1') {
+        console.log(c.greenBright('\nCurrent Dgraph schema:'));
+        get_schema();
+        rl.close();
+      } else if (toDo === '2') {
+        const CLIENT = helper.create_client();
+        const DIFFERENCES = await get_diff(CLIENT);
+        print_diff(DIFFERENCES);
+        rl.close();
+      } else if (toDo === '3') {
+        const FORCE_FLAG = !!program.force;
+        const CLIENT = helper.create_client();
+        await helper.diff_checker(CLIENT, FORCE_FLAG);
+        rl.close();
+      }
+    });
+  } catch (error) {
+    console.error(error)
+  }
 };
 
 
