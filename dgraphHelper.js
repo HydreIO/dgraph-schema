@@ -288,7 +288,7 @@ const diff_schema_checker = (new_schema, current_schema) => {
             category: 'schema',
             object: { ...NEW_OBJECT },
           });
-        } else if (typeof NEW_OBJECT !== 'undefined' && typeof NEW_OBJECT.index !== 'undefined' && NEW_OBJECT.index === true && difference.kind === 'A') {
+        } else if (NEW_OBJECT?.index && difference.kind === 'A') {
           CONFLICTS.push({
             message: 'Tokenizer of this objects was edited.',
             category: 'schema',
