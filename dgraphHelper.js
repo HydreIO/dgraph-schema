@@ -18,7 +18,7 @@ const prepare_value_string = predicate => {
   if (PREPARED_ARRAY[PREPARED_ARRAY.length - 1] === '.') {
     PREPARED_ARRAY.pop();
   } else {
-    throw new Error('Missing . at the end of predicate, or incorrect spacing.');
+    throw new Error('Missing dot at the end of predicate, or incorrect spacing.');
   }
   return PREPARED_ARRAY;
 };
