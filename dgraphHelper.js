@@ -2,62 +2,67 @@ import diff from 'deep-diff';
 import dgraph from 'dgraph-js';
 import grpc from 'grpc';
 
-import { SCHEMA, TYPES } from './schema';
+import { schema, types } from './schema';
 
-const DB_URL = process.env.DGRAPH_URL;
+const { DB_URL: HOST } = process.env;
 
 const create_client = () => {
-  const CLIENT_STUB = new dgraph.DgraphClientStub(DB_URL, grpc.credentials.createInsecure());
-  return new dgraph.DgraphClient(CLIENT_STUB);
+  const client_stub = new dgraph.DgraphClientStub(HOST, grpc.credentials.createInsecure());
+  return new dgraph.DgraphClient(client_stub);
 }
 
 const get_schema = async client => (await client.newTxn().query('schema {}')).getJson();
 
 const prepare_value_string = predicate => {
-  if (!predicate.endsWith('.')) throw new Error('Missing dot at the end of predicate, or incorrect spacing.');
-  return predicate.slice(-1).split(' ');
+  const prepared_array = predicate.split(' ');
+  if (prepared_array[prepared_array.length - 1] === '.') {
+    prepared_array.pop();
+  } else {
+    throw new Error('Missing dot at the end of predicate, or incorrect spacing.');
+  }
+  return prepared_array;
 };
 
 const type_check = (type, object) => {
-  const NORMAL_TYPES = ['default', 'bool', 'datetime', 'float', 'geo', 'int', 'password', 'string', 'uid'];
-  const LIST_TYPES = ['[default]', '[bool]', '[datetime]', '[float]', '[geo]', '[int]', '[string]', '[uid]'];
-  const TYPE_IS_NOT_ALIST = NORMAL_TYPES.some(value => value === type);
-  const TYPE_IS_LIST = LIST_TYPES.some(value => value === type);
-  if (!TYPE_IS_NOT_ALIST && !TYPE_IS_LIST) {
+  const normal_types = ['default', 'bool', 'datetime', 'float', 'geo', 'int', 'password', 'string', 'uid'];
+  const list_types = ['[default]', '[bool]', '[datetime]', '[float]', '[geo]', '[int]', '[string]', '[uid]'];
+  const type_is_not_alist = normal_types.some(value => value === type);
+  const type_is_list = list_types.some(value => value === type);
+  if (!type_is_not_alist && !type_is_list) {
     throw new Error('Incorrect or missing type in predicate.');
-  } else if (TYPE_IS_LIST) {
+  } else if (type_is_list) {
     object.type = type.slice(1, -1);
   } else {
     object.type = type;
   }
-  if (TYPE_IS_LIST) {
+  if (type_is_list) {
     object.list = true;
   }
 };
 
-const index_check = (aValues, object) => {
-  const TOKENIZER_ARRAY = [];
-  const INDEX = aValues.some(value => {
+const index_check = (values_array, object) => {
+  const tokenizer_array = [];
+  const index = values_array.some(value => {
     if (value.includes('@index')) {
       if (value.slice(6, 7) !== '(' || value.slice(-1) !== ')') {
         throw new Error('@index is invalid, missing parenthesis or there are spaces in tokenizer.');
       }
-      const FIELDS = value.slice(7, -1).split(',');
-      FIELDS.forEach(field => {
-        TOKENIZER_ARRAY.push(field.trim());
+      const fields = value.slice(7, -1).split(',');
+      fields.forEach(field => {
+        tokenizer_array.push(field.trim());
       });
       return true;
     }
     return false;
   });
-  if (INDEX) {
-    object.index = INDEX;
-    object.tokenizer = TOKENIZER_ARRAY;
+  if (index) {
+    object.index = index;
+    object.tokenizer = tokenizer_array;
   }
 };
 
-const other_options = (aValues, object) => {
-  aValues.forEach(value => {
+const other_options = (values_array, object) => {
+  values_array.forEach(value => {
     if (value.includes('@upsert')) {
       object.upsert = true;
     } else if (value.includes('@lang')) {
@@ -67,50 +72,50 @@ const other_options = (aValues, object) => {
 }
 
 const create_json_schema = () => {
-  const JSON_SCHEMA = [];
-  Object.entries(SCHEMA).forEach(([key, value]) => {
-    const OBJECT = { predicate: key };
-    const PREDICATES_ARRAY = prepare_value_string(value);
+  const json_schema = [];
+  Object.entries(schema).forEach(([key, value]) => {
+    const object = { predicate: key };
+    const predicates_array = prepare_value_string(value);
     try {
-      type_check(PREDICATES_ARRAY[0], OBJECT);
+      type_check(predicates_array[0], object);
     } catch (error) {
       console.error(error);
     }
-    PREDICATES_ARRAY.shift();
+    predicates_array.shift();
     try {
-      index_check(PREDICATES_ARRAY, OBJECT);
+      index_check(predicates_array, object);
     } catch (error) {
       console.error(error);
     }
-    other_options(PREDICATES_ARRAY, OBJECT);
-    JSON_SCHEMA.push(OBJECT);
+    other_options(predicates_array, object);
+    json_schema.push(object);
   });
-  return JSON_SCHEMA;
+  return json_schema;
 }
 
 const create_json_types = () => {
-  const JSON_TYPES = [];
-  Object.entries(TYPES).forEach(([key, value]) => {
-    const OBJECT = { name: key };
-    const FIELDS = [];
+  const json_types = [];
+  Object.entries(types).forEach(([key, value]) => {
+    const object = { name: key };
+    const fields = [];
     value.forEach(field => {
-      FIELDS.push({ name: field });
+      fields.push({ name: field });
     });
-    OBJECT.fields = FIELDS;
-    JSON_TYPES.push(OBJECT);
+    object.fields = fields;
+    json_types.push(object);
   });
-  return JSON_TYPES;
+  return json_types;
 }
 
 // Custom comparator for sorting our schema
 const compare_predicate_object = (object_a, object_b) => {
-  const PREDICATE_A = object_a.predicate.toUpperCase();
-  const PREDICATE_B = object_b.predicate.toUpperCase();
+  const predicate_a = object_a.predicate.toUpperCase();
+  const predicate_b = object_b.predicate.toUpperCase();
 
   let comparator = 0;
-  if (PREDICATE_A > PREDICATE_B) {
+  if (predicate_a > predicate_b) {
     comparator = 1;
-  } else if (PREDICATE_A < PREDICATE_B) {
+  } else if (predicate_a < predicate_b) {
     comparator = -1;
   }
   return comparator;
@@ -118,24 +123,24 @@ const compare_predicate_object = (object_a, object_b) => {
 
 // Custom comparator for sorting types
 const compare_name_object = (object_a, object_b) => {
-  const PREDICATE_A = object_a.name.toUpperCase();
-  const PREDICATE_B = object_b.name.toUpperCase();
+  const predicate_a = object_a.name.toUpperCase();
+  const predicate_b = object_b.name.toUpperCase();
 
   let comparator = 0;
-  if (PREDICATE_A > PREDICATE_B) {
+  if (predicate_a > predicate_b) {
     comparator = 1;
-  } else if (PREDICATE_A < PREDICATE_B) {
+  } else if (predicate_a < predicate_b) {
     comparator = -1;
   }
   return comparator;
 }
 
 const prepare_new_schema = () => {
-  const SORTED_SCHEMA = create_json_schema().sort(compare_predicate_object);
-  const SORTED_TYPES = create_json_types().sort(compare_name_object);
+  const sorted_schema = create_json_schema().sort(compare_predicate_object);
+  const sorted_types = create_json_types().sort(compare_name_object);
   return {
-    schema: SORTED_SCHEMA,
-    types: SORTED_TYPES,
+    schema: sorted_schema,
+    types: sorted_types,
   };
 }
 
@@ -163,176 +168,176 @@ const remove_dgraph_data = uneprepared_schema => {
 }
 
 const prepare_current_schema = async client => {
-  const FETECHED_SCHEMA = await get_schema(client);
-  const FORMATED_SCHEMA = remove_dgraph_data(FETECHED_SCHEMA);
-  FORMATED_SCHEMA.schema.sort(compare_predicate_object);
-  FORMATED_SCHEMA.types.sort(compare_name_object);
-  return FORMATED_SCHEMA;
+  const fetched_schema = await get_schema(client);
+  const formated_schema = remove_dgraph_data(fetched_schema);
+  formated_schema.schema.sort(compare_predicate_object);
+  formated_schema.types.sort(compare_name_object);
+  return formated_schema;
 }
 
 const compare_types_fields = (field_a, field_b) => {
-  const TYPE_A = field_a.name.toUpperCase();
-  const TYPE_B = field_b.name.toUpperCase();
+  const type_a = field_a.name.toUpperCase();
+  const type_b = field_b.name.toUpperCase();
 
   let comparator = 0;
-  if (TYPE_A > TYPE_B) {
+  if (type_a > type_b) {
     comparator = 1;
-  } else if (TYPE_A < TYPE_B) {
+  } else if (type_a < type_b) {
     comparator = -1;
   }
   return comparator;
 }
 
 const diff_types_checker = (new_schema, current_schema) => {
-  const CONFLICTS = [];
-  const ADDED = [];
-  const TYPES_TO_CHECK = [];
-  const MISSING_TYPES = [];
+  const conflicts = [];
+  const added = [];
+  const types_to_check = [];
+  const missing_types = [];
 
   new_schema.types.forEach(type => {
     type.fields.sort(compare_types_fields);
-    TYPES_TO_CHECK.push(type.name);
+    types_to_check.push(type.name);
   });
 
   current_schema.types.forEach(type => {
     type.fields.sort(compare_types_fields);
-    if (!TYPES_TO_CHECK.includes(type.name)) {
-      MISSING_TYPES.push(type.name);
+    if (!types_to_check.includes(type.name)) {
+      missing_types.push(type.name);
     }
   });
 
-  TYPES_TO_CHECK.forEach(type => {
-    const NEW_OBJECT = new_schema.types.find(object => object.name === type);
-    const CURRENT_OBJECT = current_schema.types.find(object => object.name === type);
-    const DIFFERENCES = diff(CURRENT_OBJECT, NEW_OBJECT);
-    if (typeof DIFFERENCES !== 'undefined') {
-      DIFFERENCES.forEach(difference => {
+  types_to_check.forEach(type => {
+    const new_object = new_schema.types.find(object => object.name === type);
+    const current_object = current_schema.types.find(object => object.name === type);
+    const differences = diff(current_object, new_object);
+    if (typeof differences !== 'undefined') {
+      differences.forEach(difference => {
         if (difference.kind === 'E') {
-          CONFLICTS.push({
+          conflicts.push({
             message: `This object was edited at path: ${difference.path[0]}`,
             category: 'types',
-            object: { ...CURRENT_OBJECT },
+            object: { ...current_object },
             additional_information: `Expected ${difference.lhs} found ${difference.rhs}`,
           });
         } else if (difference.kind === 'N') {
-          ADDED.push({
+          added.push({
             message: 'This new object was added.',
             category: 'types',
-            object: { ...NEW_OBJECT },
+            object: { ...new_object },
           });
         } else if (difference.kind === 'A') {
-          CONFLICTS.push({
+          conflicts.push({
             message: 'Change in the fields in this object.',
             category: 'types',
-            object: CURRENT_OBJECT,
+            object: current_object,
           });
         }
       });
     }
   });
 
-  MISSING_TYPES.forEach(type => {
-    const DELETED_OBJECT = current_schema.types.find(object => object.name === type);
-    CONFLICTS.push({
+  missing_types.forEach(type => {
+    const deleted_object = current_schema.types.find(object => object.name === type);
+    conflicts.push({
       message: 'This object was deleted.',
       category: 'types',
-      object: { ...DELETED_OBJECT },
+      object: { ...deleted_object },
     });
   });
 
-  return [CONFLICTS, ADDED];
+  return [conflicts, added];
 }
 
 const diff_schema_checker = (new_schema, current_schema) => {
-  const CONFLICTS = [];
-  const ADDED = [];
-  const PREDICATES_TO_CHECK = new_schema.schema.map(({ predicate }) => predicate);
-  const MISSING_PREDICATES = current_schema.schema
-    .filter(({ predicate }) => !PREDICATES_TO_CHECK.includes(predicate))
+  const conflicts = [];
+  const added = [];
+  const predicates_to_check = new_schema.schema.map(({ predicate }) => predicate);
+  const missing_predicates = current_schema.schema
+    .filter(({ predicate }) => !predicates_to_check.includes(predicate))
     .map(({ predicate }) => predicate);
 
-  PREDICATES_TO_CHECK.forEach(predicate => {
-    const NEW_OBJECT = new_schema.schema.find(object => object.predicate === predicate);
-    const CURRENT_OBJECT = current_schema.schema.find(object => object.predicate === predicate);
-    const DIFFERENCES = diff(CURRENT_OBJECT, NEW_OBJECT); // Can have multiple diff for 1 object
-    if (typeof DIFFERENCES !== 'undefined') {
-      DIFFERENCES.forEach(difference => {
+  predicates_to_check.forEach(predicate => {
+    const new_object = new_schema.schema.find(object => object.predicate === predicate);
+    const current_object = current_schema.schema.find(object => object.predicate === predicate);
+    const differences = diff(current_object, new_object); // Can have multiple diff for 1 object
+    if (typeof differences !== 'undefined') {
+      differences.forEach(difference => {
         if (difference.kind === 'E') {
-          CONFLICTS.push({
+          conflicts.push({
             message: `This object was edited at path:${difference.path[0]}`,
             category: 'schema',
-            object: { ...CURRENT_OBJECT },
+            object: { ...current_object },
             additional_information: `Expected${difference.rhs}found${difference.lhs}`,
           });
         } else if (difference.kind === 'N') {
-          if (typeof CURRENT_OBJECT === 'undefined') {
-            ADDED.push({
+          if (typeof current_object === 'undefined') {
+            added.push({
               message: 'This object was added.',
-              object: { ...NEW_OBJECT },
+              object: { ...new_object },
             });
           } else {
-            CONFLICTS.push({
+            conflicts.push({
               message: 'This object was edited',
               category: 'schema',
-              object: { ...NEW_OBJECT },
+              object: { ...new_object },
             });
           }
         } else if (difference.kind === 'D' && difference.path[0] === 'list') {
-          CONFLICTS.push({
+          conflicts.push({
             message: 'This object was edited, should be a list.',
             category: 'schema',
-            object: { ...NEW_OBJECT },
+            object: { ...new_object },
           });
-        } else if (NEW_OBJECT?.index && difference.kind === 'A') {
-          CONFLICTS.push({
+        } else if (new_object?.index && difference.kind === 'A') {
+          conflicts.push({
             message: 'Tokenizer of this objects was edited.',
             category: 'schema',
-            object: { ...CURRENT_OBJECT },
+            object: { ...current_object },
           });
         }
       });
     }
   });
-  MISSING_PREDICATES.forEach(predicate => {
-    const DELETED_OBJECT = current_schema.schema.find(object => object.predicate === predicate);
-    CONFLICTS.push({
+  missing_predicates.forEach(predicate => {
+    const deleted_object = current_schema.schema.find(object => object.predicate === predicate);
+    conflicts.push({
       message: 'This object was deleted.',
-      object: { ...DELETED_OBJECT },
+      object: { ...deleted_object },
     });
   });
 
-  return [CONFLICTS, ADDED];
+  return [conflicts, added];
 }
 
-const format_to_raw_schema = () => Object.entries(SCHEMA).map(([key, value]) => `${key}: ${value}`).join('\n')
+const format_to_raw_schema = () => Object.entries(schema).map(([key, value]) => `${key}: ${value}`).join('\n')
 
-const format_to_raw_types = () => Object.entries(TYPES).map(([key, value]) => {
+const format_to_raw_types = () => Object.entries(types).map(([key, value]) => {
   const values = value.map(sub_value => `\n\t${sub_value}`).join('');
   return `\ntype ${key} {${values}\n}`;
 }).join('')
 
 const alter_schema = async client => {
-  const RAW_SCHEMA_STRING = format_to_raw_schema();
-  const RAW_TYPES_STRING = format_to_raw_types();
-  const RAW_STRING = `${RAW_TYPES_STRING}\n${RAW_SCHEMA_STRING}`;
-  const OPERATION = new dgraph.Operation();
-  OPERATION.setSchema(RAW_STRING);
+  const raw_schema_string = format_to_raw_schema();
+  const raw_types_string = format_to_raw_types();
+  const raw_string = `${raw_types_string}\n${raw_schema_string}`;
+  const operation = new dgraph.Operation();
+  operation.setSchema(raw_string);
   try {
-    await client.alter(OPERATION);
+    await client.alter(operation);
   } catch (error) {
     console.log(error);
   }
 }
 
 const diff_checker = async client => {
-  const NEW_SCHEMA = prepare_new_schema();
-  const CURRENT_SCHEMA = await prepare_current_schema(client);
-  const TYPES_DIFFERENCES = diff_types_checker(NEW_SCHEMA, CURRENT_SCHEMA);
-  const SCHEMA_DIFFERENCES = diff_schema_checker(NEW_SCHEMA, CURRENT_SCHEMA);
-  const CONFLICTS = [...TYPES_DIFFERENCES[0], ...SCHEMA_DIFFERENCES[0]];
-  const ADDED = [...TYPES_DIFFERENCES[1], ...SCHEMA_DIFFERENCES[1]];
+  const new_schema = prepare_new_schema();
+  const current_schema = await prepare_current_schema(client);
+  const types_differences = diff_types_checker(new_schema, current_schema);
+  const schema_differences = diff_schema_checker(new_schema, current_schema);
+  const conflicts = [...types_differences[0], ...schema_differences[0]];
+  const added = [...types_differences[1], ...schema_differences[1]];
 
-  return [CONFLICTS, ADDED];
+  return [conflicts, added];
 }
 
 export default {
