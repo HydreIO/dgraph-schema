@@ -14,13 +14,8 @@ const create_client = () => {
 const get_schema = async client => (await client.newTxn().query('schema {}')).getJson();
 
 const prepare_value_string = predicate => {
-  const prepared_array = predicate.split(' ');
-  if (prepared_array[prepared_array.length - 1] === '.') {
-    prepared_array.pop();
-  } else {
-    throw new Error('Missing dot at the end of predicate, or incorrect spacing.');
-  }
-  return prepared_array;
+  if (!predicate.endsWith('.')) throw new Error('Missing dot at the end of predicate, or incorrect spacing.');
+  return predicate.split(' ').slice(0, -1)
 };
 
 const type_check = (type, object) => {
