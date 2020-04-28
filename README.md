@@ -11,7 +11,6 @@ New schema in file named `schema.js` in the same folder as `cli.js`
 
 ## Example of a schema
 ```javascript
-// eslint-disable-next-line unicorn/filename-case
 export const SCHEMA = {
   uuid: 'string @index(exact,fulltext) @upsert .',
   hash: 'string .',
