@@ -68,21 +68,18 @@ program
 
 program.command('get_schema').action(async () => {
   await get_schema();
-  process.exit(0);
 });
 
 program.command('get_diff').action(async () => {
   const CLIENT = helper.create_client();
   const DIFFERENCES = await get_diff(CLIENT);
   print_diff(DIFFERENCES);
-  process.exit(0);
 });
 
 program.command('alter_schema').action(async () => {
   const FORCE_FLAG = !!program.force;
   const CLIENT = helper.create_client();
   await alter_schema(CLIENT, FORCE_FLAG);
-  process.exit(0);
 });
 
 program.parse(process.argv);
