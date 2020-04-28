@@ -43,7 +43,7 @@ const alter_schema = async (client, force_flag) => {
   const DIFFERENCES = await get_diff(client);
   print_diff(DIFFERENCES);
   if (force_flag) {
-    console.log(c.bgRedBright(' Force altering schema. '));
+    console.log(c.bgRedBright(' Forcing schema alteration. '));
     await helper.alter_schema(client);
   } else if (DIFFERENCES[1].length > 0) {
     await helper.alter_schema(client);
