@@ -6,8 +6,8 @@ You can:
 - Alter your Dgraph schema if there are no conflicts
 
 ## Requirement
-Node v13.12.0 or later
-New schema in file named `schema.js` in the same folder as `cli.js`
+- Node v13.12.0 or later
+- A schema file
 
 ## Example of a schema
 ```javascript
@@ -26,25 +26,28 @@ export const TYPES = {
 
 
 ## How to use it
-`node --experimental-specifier-resolution=node cli.js` to use the CLI.
+The CLI also has 3 commands with options for each of them: 
+- `dgraph-schema get_schema`
+- `dgraph-schema get_diff`
+- `dgraph-schema alter`
 
-You can pass an optional flag to force the alter of you current schema even if there are conflicts by using `-F` or `--force`.
+If you need to change the Dgraph DB url you can use the `DGRAPH_URL` environment variable or use the `--host` option.
 
-Such as: `node --experimental-specifier-resolution=node cli.js -F`
-
-If you need to change the Dgraph DB url you can use the `DGRAPH_URL` environment variable.
-
-The CLI also has 3 commands: 
-- `get_schema`
-- `get_diff`
-- `alter_schema`
 
 ### get_schema command
-`node --experimental-specifier-resolution=node cli.js get_schema` will print the current Dgraph schema.
+`dgraph-schema get_schema` will print the current Dgraph schema.
+Possible options are:
+- `-H, --host <my_host>` This will overwrite the `DGRAPH_URL` environment variable if there are any.
 
 ### get_diff command
-` node --experimental-specifier-resolution=node cli.js get_diff` will print the differences between your new schema & the current one.
+`dgraph-schema get_diff` will print the differences between your new schema & the current one.
+Possible options are:
+- `-H, --host <my_host>` This will overwrite the `DGRAPH_URL` environment variable if there are any.
+- `-P, --path <file_path>` To specify the path of your schema file, by default it uses `./schema.js` in the current working directory.
 
-### alter_schema command
-` node --experimental-specifier-resolution=node cli.js alter_schema` will alter your Dgraph schema if there are no conflicts.
-You can pass the optional `-F` or `--force` to ignore the conflicts.
+### alter command
+`dgraph-schema alter` will alter your Dgraph schema if there are no conflicts.
+Possible options are:
+- `-H, --host <my_host>` This will overwrite the `DGRAPH_URL` environment variable if there are any.
+- `-P, --path <file_path>` To specify the path of your schema file, by default it uses `./schema.js` in the current working directory.
+- `-F, --force` This flag allows you to ignore any conflicts when trying to alter your schema.
