@@ -1,12 +1,12 @@
-#!/usr/bin/env node
+#!/usr/bin/env node --harmony
 import c from 'chalk';
 import program from 'commander';
-import fs from 'fs';
 import util from 'util';
 
 import helper from './dgraphHelper';
 
-const { DB_URL: HOST } = process.env;
+const host_option = ['-H, --host <address>', 'The host address of your Dgraph DB'];
+const path_option = ['-P, --path <schema_path>', 'The path to your schema.'];
 
 const print_diff = differences => {
   const conflicts = differences[0];
@@ -28,48 +28,60 @@ const print_diff = differences => {
 }
 
 program
-  .version('0.0.1')
-  .option('-F, --force', 'Used to force alter a schema even if there are conflicts.')
-  .action(cmd => {
-    const { args } = cmd;
-    try {
-      if (!fs.existsSync('./schemaa.js')) {
-        console.error(c.redBright('File ./schema.js does not exists. It is required to continue.'));
-        process.exit(1);
-      }
-    } catch (error) {
-      console.error(error);
+  .version('1.0.0')
+  .description('A CLI to manage your Dgraph schemas with ease.');
+
+program
+  .command('get_schema')
+  .description('Get the current Dgraph schema.')
+  .option(host_option[0], host_option[1])
+  .action(async cmd => {
+    const host = cmd.host ? cmd.host : process.env.DB_URL;
+    const client = helper.create_client(host);
+    const fetched_schema = await helper.get_schema(client);
+    console.log(util.inspect(fetched_schema, false, null, true));
+  });
+
+program
+  .command('get_diff')
+  .description('Prints the differences between the new & current schema.')
+  .option(host_option[0], host_option[1])
+  .option(path_option[0], path_option[1])
+  .action(async cmd => {
+    const host = cmd.host ? cmd.host : process.env.DB_URL;
+    const schema_file = await helper.get_schema_from_path(cmd.path);
+    if (!schema_file) {
+      console.log(c.bgRedBright('Schema file does not exists !'));
+      process.exit(1);
     }
-    if (args.length === 0) {
-      console.log(c.yellowBright('No action specified.'));
-    } else {
-      console.log(c.yellowBright('Wrong action specified.'));
+    const client = helper.create_client(host);
+    const differences = await helper.diff_checker(client, schema_file);
+    print_diff(differences);
+  });
+
+program
+  .command('alter')
+  .description('Alter your Dgraph schema if there are no conflicts')
+  .option(host_option[0], host_option[1])
+  .option(path_option[0], path_option[1])
+  .option('-F, --force', 'Forcing schema alteration.')
+  .action(async cmd => {
+    const host = cmd.host ? cmd.host : process.env.DB_URL;
+    const schema_file = await helper.get_schema_from_path(cmd.path);
+    if (!schema_file) {
+      console.log(c.bgRedBright('Schema file does not exists !'));
+      process.exit(1);
+    }
+    const force_flag = !!cmd.force;
+    const client = helper.create_client(host);
+    const differences = await helper.diff_checker(client, schema_file);
+    print_diff(differences);
+    if (force_flag) {
+      console.log(c.bgRedBright(' Forcing schema alteration. '));
+      await helper.alter_schema(client, schema_file);
+    } else if (differences[1].length > 0) {
+      await helper.alter_schema(client, schema_file);
     }
   });
 
-program.command('get_schema').action(async () => {
-  const client = helper.create_client(HOST);
-  const fetched_schema = await helper.get_schema(client);
-  console.log(util.inspect(fetched_schema, false, null, true));
-});
-
-program.command('get_diff').action(async () => {
-  const client = helper.create_client();
-  const differences = await helper.diff_checker(client);
-  print_diff(differences);
-});
-
-program.command('alter_schema').action(async () => {
-  const force_flag = !!program.force;
-  const client = helper.create_client();
-  const differences = await helper.diff_checker(client);
-  print_diff(differences);
-  if (force_flag) {
-    console.log(c.bgRedBright(' Forcing schema alteration. '));
-    await helper.alter_schema(client);
-  } else if (differences[1].length > 0) {
-    await helper.alter_schema(client);
-  }
-});
-
-program.parse(process.argv);
+program.parseAsync(process.argv)
