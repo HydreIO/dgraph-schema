@@ -43,12 +43,12 @@ const index_check = (values_array, object) => {
   const tokenizer_array = []
   const index = values_array.some(value => {
     if (value.includes('@index')) {
-      if (value.slice(6, 7) !== '(' || value.slice(-1) !== ')') {
+      if (value.slice('@index'.length)[0] !== '(' || value.slice(-1) !== ')') {
         throw new Error(`@index is invalid, 
           missing parenthesis or there are spaces in tokenizer.`)
       }
 
-      const fields = value.slice(7, -1).split(',')
+      const fields = value.slice('@index('.length, -1).split(',')
       fields.forEach(field => {
         tokenizer_array.push(field.trim())
       })
