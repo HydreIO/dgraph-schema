@@ -1,18 +1,6 @@
-import dgraph from 'dgraph-js'
+import diff from 'deep-diff'
 
-import {
-  prepare_new_schema,
-  prepare_current_schema,
-} from './utils/prepare_schema'
-import {
-  diff_schema_checker, diff_types_checker,
-} from './utils/diff_checker'
-
-const get_schema = async client =>
-  (await client.newTxn().query('schema {}')).getJson()
-
-
-/* const compare_types_fields = (field_a, field_b) => {
+const compare_types_fields = (field_a, field_b) => {
   const type_a = field_a.name.toUpperCase()
   const type_b = field_b.name.toUpperCase()
 
@@ -23,9 +11,9 @@ const get_schema = async client =>
     comparator = -1
 
   return comparator
-} */
+}
 
-/* const diff_types_checker = (new_schema, current_schema) => {
+const diff_types_checker = (new_schema, current_schema) => {
   const conflicts = []
   const added = []
   const types_to_check = []
@@ -55,8 +43,8 @@ const get_schema = async client =>
             object: {
               ...current_object,
             },
-            additional_information: `Expected ${ difference.lhs }
-            found ${ difference.rhs }`,
+            additional_information: `Expected ${ difference.lhs } 
+              found ${ difference.rhs }`,
           })
         } else if (difference.kind === 'N') {
           added.push({
@@ -90,9 +78,9 @@ const get_schema = async client =>
     })
   })
   return [conflicts, added]
-} */
+}
 
-/* const diff_schema_checker = (new_schema, current_schema) => {
+const diff_schema_checker = (new_schema, current_schema) => {
   const conflicts = []
   const added = []
   const predicates_to_check = new_schema.schema.map(({
@@ -121,8 +109,8 @@ const get_schema = async client =>
             object: {
               ...current_object,
             },
-            additional_information: `Expected${ difference.rhs }
-            found ${ difference.lhs }`,
+            additional_information: `Expected${ difference.rhs } 
+              found ${ difference.lhs }`,
           })
         } else if (difference.kind === 'N') {
           if (typeof current_object === 'undefined') {
@@ -172,52 +160,7 @@ const get_schema = async client =>
     })
   })
   return [conflicts, added]
-} */
-
-const format_to_raw_schema = schema => Object.entries(schema)
-    .map(([key, value]) => `${ key }: ${ value }`)
-    .join('\n')
-
-const format_to_raw_types = types => Object.entries(types)
-    .map(([key, value]) => {
-      const values = value.map(sub_value => `\n\t${ sub_value }`).join('')
-      return `\ntype ${ key } {${ values }\n}`
-    })
-    .join('')
-
-const diff_checker = async (client, schema_file) => {
-  const new_schema = prepare_new_schema(schema_file)
-  const fetched_schema = await get_schema(client)
-  const current_schema = prepare_current_schema(fetched_schema)
-  const types_differences = diff_types_checker(new_schema, current_schema)
-  const schema_differences = diff_schema_checker(new_schema, current_schema)
-  const conflicts = [...types_differences[0], ...schema_differences[0]]
-  const added = [...types_differences[1], ...schema_differences[1]]
-
-  return {
-    conflicts,
-    added,
-  }
 }
 
-const alter_schema = async (client, schema_file) => {
-  const {
-    schema, types,
-  } = schema_file
-  const raw_schema_string = format_to_raw_schema(schema)
-  const raw_types_string = format_to_raw_types(types)
-  const raw_string = `${ raw_types_string }\n${ raw_schema_string }`
-  const operation = new dgraph.Operation()
-  operation.setSchema(raw_string)
-  try {
-    await client.alter(operation)
-  } catch (error) {
-    console.log(error)
-  }
-}
 
-export default {
-  get_schema,
-  diff_checker,
-  alter_schema,
-}
+export { diff_types_checker, diff_schema_checker }

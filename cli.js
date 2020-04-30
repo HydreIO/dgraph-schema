@@ -4,6 +4,7 @@ import program from 'commander'
 import util from 'util'
 
 import helper from './dgraph_helper'
+import utilities from './utils/cli_utils'
 
 const host_option = ['-H, --host <address>',
   'The host address of your Dgraph DB']
@@ -38,7 +39,7 @@ program
     .option(host_option[0], host_option[1])
     .action(async cmd => {
       const host = cmd.host ? cmd.host : process.env.DB_URL
-      const client = helper.create_client(host)
+      const client = utilities.create_client(host)
       const fetched_schema = await helper.get_schema(client)
       console.log(util.inspect(fetched_schema, false, null, true))
     })
@@ -49,12 +50,12 @@ program
     .option(path_option[0], path_option[1])
     .action(async cmd => {
       const host = cmd.host ? cmd.host : process.env.DB_URL
-      const schema_file = helper.get_schema_from_path(cmd.path)
+      const schema_file = await utilities.get_schema_from_path(cmd.path)
       if (!schema_file) {
         console.log(c.bgRedBright('Schema file does not exists !'))
         process.exit(1)
       }
-      const client = helper.create_client(host)
+      const client = utilities.create_client(host)
       const differences = await helper.diff_checker(client, schema_file)
       print_diff(differences)
     })
@@ -66,20 +67,22 @@ program
     .option('-F, --force', 'Forcing schema alteration.')
     .action(async cmd => {
       const host = cmd.host ? cmd.host : process.env.DB_URL
-      const schema_file = helper.get_schema_from_path(cmd.path)
+      const schema_file = await utilities.get_schema_from_path(cmd.path)
       if (!schema_file) {
         console.log(c.bgRedBright('Schema file does not exists !'))
         process.exit(1)
       }
       const force_flag = !!cmd.force
-      const client = helper.create_client(host)
+      const client = utilities.create_client(host)
       const differences = await helper.diff_checker(client, schema_file)
       print_diff(differences)
       if (force_flag) {
         console.log(c.bgRedBright(' Forcing schema alteration. '))
         await helper.alter_schema(client, schema_file)
-      } else if (differences[1].length > 0)
+      } else if (differences.added.length > 0) {
         await helper.alter_schema(client, schema_file)
+        console.log(c.greenBright('Schema altered.'))
+      }
     })
 
 program.parseAsync(process.argv)
