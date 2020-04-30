@@ -1,12 +1,37 @@
 import diff from 'deep-diff';
 import dgraph from 'dgraph-js';
+import fs from 'fs';
 import grpc from 'grpc';
-
-import { schema, types } from './schema';
 
 const create_client = host => {
   const client_stub = new dgraph.DgraphClientStub(host, grpc.credentials.createInsecure());
   return new dgraph.DgraphClient(client_stub);
+}
+
+const check_file_exists = file_path => {
+  try {
+    if (fs.existsSync(file_path)) {
+      return true;
+    }
+    return false
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+const get_schema_from_path = async path => {
+  if (path) {
+    console.log('Now using file at path:', path);
+    if (check_file_exists(path)) {
+      return import(path);
+    }
+    return false;
+  }
+  const file_path = `${process.cwd()}/schema.js`;
+  if (check_file_exists(file_path)) {
+    return import(file_path);
+  }
+  return false;
 }
 
 const get_schema = async client => (await client.newTxn().query('schema {}')).getJson();
@@ -64,7 +89,7 @@ const other_options = (values_array, object) => {
   })
 }
 
-const create_json_schema = () => {
+const create_json_schema = schema => {
   const json_schema = [];
   Object.entries(schema).forEach(([key, value]) => {
     const object = { predicate: key };
@@ -86,7 +111,7 @@ const create_json_schema = () => {
   return json_schema;
 }
 
-const create_json_types = () => {
+const create_json_types = types => {
   const json_types = [];
   Object.entries(types).forEach(([key, value]) => {
     const object = { name: key };
@@ -128,9 +153,10 @@ const compare_name_object = (object_a, object_b) => {
   return comparator;
 }
 
-const prepare_new_schema = () => {
-  const sorted_schema = create_json_schema().sort(compare_predicate_object);
-  const sorted_types = create_json_types().sort(compare_name_object);
+const prepare_new_schema = schema_file => {
+  const { schema, types } = schema_file;
+  const sorted_schema = create_json_schema(schema).sort(compare_predicate_object);
+  const sorted_types = create_json_types(types).sort(compare_name_object);
   return {
     schema: sorted_schema,
     types: sorted_types,
@@ -302,16 +328,17 @@ const diff_schema_checker = (new_schema, current_schema) => {
   return [conflicts, added];
 }
 
-const format_to_raw_schema = () => Object.entries(schema).map(([key, value]) => `${key}: ${value}`).join('\n')
+const format_to_raw_schema = schema => Object.entries(schema).map(([key, value]) => `${key}: ${value}`).join('\n')
 
-const format_to_raw_types = () => Object.entries(types).map(([key, value]) => {
+const format_to_raw_types = types => Object.entries(types).map(([key, value]) => {
   const values = value.map(sub_value => `\n\t${sub_value}`).join('');
   return `\ntype ${key} {${values}\n}`;
 }).join('')
 
-const alter_schema = async client => {
-  const raw_schema_string = format_to_raw_schema();
-  const raw_types_string = format_to_raw_types();
+const alter_schema = async (client, schema_file) => {
+  const { schema, types } = schema_file;
+  const raw_schema_string = format_to_raw_schema(schema);
+  const raw_types_string = format_to_raw_types(types);
   const raw_string = `${raw_types_string}\n${raw_schema_string}`;
   const operation = new dgraph.Operation();
   operation.setSchema(raw_string);
@@ -322,8 +349,8 @@ const alter_schema = async client => {
   }
 }
 
-const diff_checker = async client => {
-  const new_schema = prepare_new_schema();
+const diff_checker = async (client, schema_file) => {
+  const new_schema = prepare_new_schema(schema_file);
   const current_schema = await prepare_current_schema(client);
   const types_differences = diff_types_checker(new_schema, current_schema);
   const schema_differences = diff_schema_checker(new_schema, current_schema);
@@ -338,4 +365,5 @@ export default {
   get_schema,
   diff_checker,
   alter_schema,
+  get_schema_from_path,
 }
