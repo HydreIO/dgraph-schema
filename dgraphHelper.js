@@ -127,13 +127,7 @@ const compare_predicate_object = (object_a, object_b) => {
   const predicate_a = object_a.predicate.toUpperCase();
   const predicate_b = object_b.predicate.toUpperCase();
 
-  let comparator = 0;
-  if (predicate_a > predicate_b) {
-    comparator = 1;
-  } else if (predicate_a < predicate_b) {
-    comparator = -1;
-  }
-  return comparator;
+  return predicate_a.localeCompare(predicate_b)
 }
 
 // Custom comparator for sorting types
@@ -141,13 +135,7 @@ const compare_name_object = (object_a, object_b) => {
   const predicate_a = object_a.name.toUpperCase();
   const predicate_b = object_b.name.toUpperCase();
 
-  let comparator = 0;
-  if (predicate_a > predicate_b) {
-    comparator = 1;
-  } else if (predicate_a < predicate_b) {
-    comparator = -1;
-  }
-  return comparator;
+  return predicate_a.localeCompare(predicate_b)
 }
 
 const prepare_new_schema = schema_file => {
