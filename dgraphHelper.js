@@ -115,10 +115,7 @@ const create_json_types = types => {
   const json_types = [];
   Object.entries(types).forEach(([key, value]) => {
     const object = { name: key };
-    const fields = [];
-    value.forEach(field => {
-      fields.push({ name: field });
-    });
+    const fields = value.map(field => ({ name: field }));
     object.fields = fields;
     json_types.push(object);
   });
