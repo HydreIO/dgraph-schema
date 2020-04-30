@@ -372,7 +372,10 @@ const diff_checker = async (client, schema_file) => {
   const conflicts = [...types_differences[0], ...schema_differences[0]]
   const added = [...types_differences[1], ...schema_differences[1]]
 
-  return [conflicts, added]
+  return {
+    conflicts,
+    added,
+  }
 }
 
 export default {

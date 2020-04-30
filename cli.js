@@ -5,12 +5,14 @@ import util from 'util'
 
 import helper from './dgraph_helper'
 
-const host_option = ['-H, --host <address>', 'The host address of your Dgraph DB']
+const host_option = ['-H, --host <address>',
+  'The host address of your Dgraph DB']
 const path_option = ['-P, --path <schema_path>', 'The path to your schema.']
 
 const print_diff = differences => {
-  const conflicts = differences[0]
-  const added = differences[1]
+  const {
+    conflicts, added,
+  } = differences
 
   if (conflicts.length > 0) {
     console.log(c.redBright('Can\'t alter schema, there are conflicts.'))
