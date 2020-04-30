@@ -4,7 +4,10 @@ import fs from 'fs'
 import grpc from 'grpc'
 
 const create_client = host => {
-  const client_stub = new dgraph.DgraphClientStub(host, grpc.credentials.createInsecure())
+  const client_stub = new dgraph.DgraphClientStub(
+      host,
+      grpc.credentials.createInsecure(),
+  )
   return new dgraph.DgraphClient(client_stub)
 }
 
@@ -19,7 +22,7 @@ const check_file_exists = file_path => {
   }
 }
 
-const get_schema_from_path = async path => {
+const get_schema_from_path = path => {
   if (path) {
     console.log('Now using file at path:', path)
     if (check_file_exists(path))
@@ -34,16 +37,37 @@ const get_schema_from_path = async path => {
   return false
 }
 
-const get_schema = async client => (await client.newTxn().query('schema {}')).getJson()
+const get_schema = async client =>
+  (await client.newTxn().query('schema {}')).getJson()
 
 const prepare_value_string = predicate => {
-  if (!predicate.endsWith('.')) throw new Error('Missing dot at the end of predicate, or incorrect spacing.')
+  if (!predicate.endsWith('.'))
+    throw new Error('Missing dot at the end of predicate, or incorrect spacing')
+
   return predicate.split(' ').slice(0, -1)
 }
 
 const type_check = (type, object) => {
-  const normal_types = ['default', 'bool', 'datetime', 'float', 'geo', 'int', 'password', 'string', 'uid']
-  const list_types = ['[default]', '[bool]', '[datetime]', '[float]', '[geo]', '[int]', '[string]', '[uid]']
+  const normal_types = [
+    'default',
+    'bool',
+    'datetime',
+    'float',
+    'geo',
+    'int',
+    'password',
+    'string',
+    'uid']
+  const list_types = [
+    '[default]',
+    '[bool]',
+    '[datetime]',
+    '[float]',
+    '[geo]',
+    '[int]',
+    '[string]',
+    '[uid]']
+
   const type_is_not_alist = normal_types.some(value => value === type)
   const type_is_list = list_types.some(value => value === type)
   if (!type_is_not_alist && !type_is_list)
@@ -61,8 +85,10 @@ const index_check = (values_array, object) => {
   const tokenizer_array = []
   const index = values_array.some(value => {
     if (value.includes('@index')) {
-      if (value.slice(6, 7) !== '(' || value.slice(-1) !== ')')
-        throw new Error('@index is invalid, missing parenthesis or there are spaces in tokenizer.')
+      if (value.slice(6, 7) !== '(' || value.slice(-1) !== ')') {
+        throw new Error(`@index is invalid, 
+        missing parenthesis or there are spaces in tokenizer.`)
+      }
 
       const fields = value.slice(7, -1).split(',')
       fields.forEach(field => {
@@ -146,7 +172,8 @@ const prepare_new_schema = schema_file => {
   const {
     schema, types,
   } = schema_file
-  const sorted_schema = create_json_schema(schema).sort(compare_predicate_object)
+  const sorted_schema = create_json_schema(schema)
+      .sort(compare_predicate_object)
   const sorted_types = create_json_types(types).sort(compare_name_object)
   return {
     schema: sorted_schema,
@@ -216,7 +243,8 @@ const diff_types_checker = (new_schema, current_schema) => {
 
   types_to_check.forEach(type => {
     const new_object = new_schema.types.find(object => object.name === type)
-    const current_object = current_schema.types.find(object => object.name === type)
+    const current_object = current_schema.types
+        .find(object => object.name === type)
     const differences = diff(current_object, new_object)
     if (typeof differences !== 'undefined') {
       differences.forEach(difference => {
@@ -227,7 +255,8 @@ const diff_types_checker = (new_schema, current_schema) => {
             object: {
               ...current_object,
             },
-            additional_information: `Expected ${ difference.lhs } found ${ difference.rhs }`,
+            additional_information: `Expected ${ difference.lhs } 
+            found ${ difference.rhs }`,
           })
         } else if (difference.kind === 'N') {
           added.push({
@@ -249,7 +278,9 @@ const diff_types_checker = (new_schema, current_schema) => {
   })
 
   missing_types.forEach(type => {
-    const deleted_object = current_schema.types.find(object => object.name === type)
+    const deleted_object = current_schema.types
+        .find(object => object.name === type)
+
     conflicts.push({
       message: 'This object was deleted.',
       category: 'types',
@@ -276,9 +307,11 @@ const diff_schema_checker = (new_schema, current_schema) => {
       }) => predicate)
 
   predicates_to_check.forEach(predicate => {
-    const new_object = new_schema.schema.find(object => object.predicate === predicate)
-    const current_object = current_schema.schema.find(object => object.predicate === predicate)
-    const differences = diff(current_object, new_object) // Can have multiple diff for 1 object
+    const new_object = new_schema.schema
+        .find(object => object.predicate === predicate)
+    const current_object = current_schema.schema
+        .find(object => object.predicate === predicate)
+    const differences = diff(current_object, new_object)
     if (typeof differences !== 'undefined') {
       differences.forEach(difference => {
         if (difference.kind === 'E') {
@@ -288,7 +321,8 @@ const diff_schema_checker = (new_schema, current_schema) => {
             object: {
               ...current_object,
             },
-            additional_information: `Expected${ difference.rhs }found${ difference.lhs }`,
+            additional_information: `Expected${ difference.rhs } 
+            found ${ difference.lhs }`,
           })
         } else if (difference.kind === 'N') {
           if (typeof current_object === 'undefined') {
@@ -328,7 +362,8 @@ const diff_schema_checker = (new_schema, current_schema) => {
     }
   })
   missing_predicates.forEach(predicate => {
-    const deleted_object = current_schema.schema.find(object => object.predicate === predicate)
+    const deleted_object = current_schema.schema
+        .find(object => object.predicate === predicate)
     conflicts.push({
       message: 'This object was deleted.',
       object: {
@@ -339,13 +374,15 @@ const diff_schema_checker = (new_schema, current_schema) => {
   return [conflicts, added]
 }
 
-const format_to_raw_schema = schema => Object.entries(schema).map(([key, value]) => `${ key }: ${ value }`)
+const format_to_raw_schema = schema => Object.entries(schema)
+    .map(([key, value]) => `${ key }: ${ value }`)
     .join('\n')
 
-const format_to_raw_types = types => Object.entries(types).map(([key, value]) => {
-  const values = value.map(sub_value => `\n\t${ sub_value }`).join('')
-  return `\ntype ${ key } {${ values }\n}`
-})
+const format_to_raw_types = types => Object.entries(types)
+    .map(([key, value]) => {
+      const values = value.map(sub_value => `\n\t${ sub_value }`).join('')
+      return `\ntype ${ key } {${ values }\n}`
+    })
     .join('')
 
 const alter_schema = async (client, schema_file) => {

@@ -49,7 +49,7 @@ program
     .option(path_option[0], path_option[1])
     .action(async cmd => {
       const host = cmd.host ? cmd.host : process.env.DB_URL
-      const schema_file = await helper.get_schema_from_path(cmd.path)
+      const schema_file = helper.get_schema_from_path(cmd.path)
       if (!schema_file) {
         console.log(c.bgRedBright('Schema file does not exists !'))
         process.exit(1)
@@ -66,7 +66,7 @@ program
     .option('-F, --force', 'Forcing schema alteration.')
     .action(async cmd => {
       const host = cmd.host ? cmd.host : process.env.DB_URL
-      const schema_file = await helper.get_schema_from_path(cmd.path)
+      const schema_file = helper.get_schema_from_path(cmd.path)
       if (!schema_file) {
         console.log(c.bgRedBright('Schema file does not exists !'))
         process.exit(1)
