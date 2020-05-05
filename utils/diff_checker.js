@@ -77,7 +77,11 @@ const diff_types_checker = (new_schema, current_schema) => {
       },
     })
   })
-  return [conflicts, added]
+
+  return {
+    conflicts,
+    added,
+  }
 }
 
 const diff_schema_checker = (new_schema, current_schema) => {
@@ -159,7 +163,11 @@ const diff_schema_checker = (new_schema, current_schema) => {
       },
     })
   })
-  return [conflicts, added]
+
+  return {
+    conflicts,
+    added,
+  }
 }
 
 
