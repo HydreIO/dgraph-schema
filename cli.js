@@ -6,10 +6,10 @@ import util from 'util'
 import helper from './dgraph_helper'
 import utilities from './utils/cli_utils'
 
-const host_option = ['-H, --host <address>',
-  'The host address of your Dgraph DB']
+const host_option = [
+  '-H, --host <address>', 'The host address of your Dgraph DB',
+]
 const path_option = ['-P, --path <schema_path>', 'The path to your schema.']
-
 const print_diff = differences => {
   const {
     conflicts, added,
@@ -41,7 +41,9 @@ program
       const host = cmd.host ? cmd.host : process.env.DB_URL
       const client = utilities.create_client(host)
       const fetched_schema = await helper.get_schema(client)
-      console.log(util.inspect(fetched_schema, false, 'undefined', true))
+      console.log(util.inspect(
+          fetched_schema, false, 'undefined', true,
+      ))
     })
 program
     .command('get_diff')
@@ -55,6 +57,7 @@ program
         console.log(c.bgRedBright('Schema file does not exists !'))
         process.exit(1)
       }
+
       const client = utilities.create_client(host)
       const differences = await helper.diff_checker(client, schema_file)
       print_diff(differences)
@@ -72,6 +75,7 @@ program
         console.log(c.bgRedBright('Schema file does not exists !'))
         process.exit(1)
       }
+
       const force_flag = !!cmd.force
       const client = utilities.create_client(host)
       const differences = await helper.diff_checker(client, schema_file)

@@ -12,7 +12,6 @@ const compare_types_fields = (field_a, field_b) => {
 
   return comparator
 }
-
 const diff_types_checker = (new_schema, current_schema) => {
   const conflicts = []
   const added = []
@@ -38,9 +37,9 @@ const diff_types_checker = (new_schema, current_schema) => {
       differences.forEach(difference => {
         if (difference.kind === 'E') {
           conflicts.push({
-            message: `This object was edited at path: ${ difference.path[0] }`,
+            message : `This object was edited at path: ${ difference.path[0] }`,
             category: 'types',
-            object: {
+            object  : {
               ...current_object,
             },
             additional_information: `Expected ${ difference.lhs } 
@@ -48,17 +47,17 @@ const diff_types_checker = (new_schema, current_schema) => {
           })
         } else if (difference.kind === 'N') {
           added.push({
-            message: 'This new object was added.',
+            message : 'This new object was added.',
             category: 'types',
-            object: {
+            object  : {
               ...new_object,
             },
           })
         } else if (difference.kind === 'A') {
           conflicts.push({
-            message: 'Change in the fields in this object.',
+            message : 'Change in the fields in this object.',
             category: 'types',
-            object: current_object,
+            object  : current_object,
           })
         }
       })
@@ -70,9 +69,9 @@ const diff_types_checker = (new_schema, current_schema) => {
         .find(object => object.name === type)
 
     conflicts.push({
-      message: 'This object was deleted.',
+      message : 'This object was deleted.',
       category: 'types',
-      object: {
+      object  : {
         ...deleted_object,
       },
     })
@@ -83,7 +82,6 @@ const diff_types_checker = (new_schema, current_schema) => {
     added,
   }
 }
-
 const diff_schema_checker = (new_schema, current_schema) => {
   const conflicts = []
   const added = []
@@ -108,9 +106,9 @@ const diff_schema_checker = (new_schema, current_schema) => {
       differences.forEach(difference => {
         if (difference.kind === 'E') {
           conflicts.push({
-            message: `This object was edited at path:${ difference.path[0] }`,
+            message : `This object was edited at path:${ difference.path[0] }`,
             category: 'schema',
-            object: {
+            object  : {
               ...current_object,
             },
             additional_information: `Expected${ difference.rhs } 
@@ -120,32 +118,32 @@ const diff_schema_checker = (new_schema, current_schema) => {
           if (typeof current_object === 'undefined') {
             added.push({
               message: 'This object was added.',
-              object: {
+              object : {
                 ...new_object,
               },
             })
           } else {
             conflicts.push({
-              message: 'This object was edited',
+              message : 'This object was edited',
               category: 'schema',
-              object: {
+              object  : {
                 ...new_object,
               },
             })
           }
         } else if (difference.kind === 'D' && difference.path[0] === 'list') {
           conflicts.push({
-            message: 'This object was edited, should be a list.',
+            message : 'This object was edited, should be a list.',
             category: 'schema',
-            object: {
+            object  : {
               ...new_object,
             },
           })
         } else if (new_object?.index && difference.kind === 'A') {
           conflicts.push({
-            message: 'Tokenizer of this objects was edited.',
+            message : 'Tokenizer of this objects was edited.',
             category: 'schema',
-            object: {
+            object  : {
               ...current_object,
             },
           })
@@ -158,7 +156,7 @@ const diff_schema_checker = (new_schema, current_schema) => {
         .find(object => object.predicate === predicate)
     conflicts.push({
       message: 'This object was deleted.',
-      object: {
+      object : {
         ...deleted_object,
       },
     })
@@ -171,4 +169,6 @@ const diff_schema_checker = (new_schema, current_schema) => {
 }
 
 
-export { diff_types_checker, diff_schema_checker }
+export {
+  diff_types_checker, diff_schema_checker,
+}
