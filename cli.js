@@ -15,12 +15,12 @@ const print_diff = differences => {
     conflicts, added,
   } = differences
 
-  if (conflicts.length > 0) {
+  if (conflicts.length) {
     console.log(c.redBright('Can\'t alter schema, there are conflicts.'))
     conflicts.forEach(element => {
       console.log(element)
     })
-  } else if (added.length > 0) {
+  } else if (added.length) {
     console.log(c.greenBright('New changes only.'))
     added.forEach(element => {
       console.log(element)
@@ -41,7 +41,7 @@ program
       const host = cmd.host ? cmd.host : process.env.DB_URL
       const client = utilities.create_client(host)
       const fetched_schema = await helper.get_schema(client)
-      console.log(util.inspect(fetched_schema, false, null, true))
+      console.log(util.inspect(fetched_schema, false, 'undefined', true))
     })
 program
     .command('get_diff')
