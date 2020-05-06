@@ -1,4 +1,4 @@
-#!/usr/bin/env node --harmony
+#!/usr/bin/env node --experimental-specifier-resolution=node --harmony cli.js
 import c from 'chalk'
 import program from 'commander'
 import util from 'util'
