@@ -26,17 +26,30 @@ const type_check = (type, object) => {
     '[uid]']
   const type_is_not_alist = normal_types.some(value => value === type)
   const type_is_list = list_types.some(value => value === type)
+
+  let temporary_object = object
   if (!type_is_not_alist && !type_is_list)
     throw new Error('Incorrect or missing type in predicate.')
-  else if (type_is_list)
-    object.type = type.slice(1, -1)
-  else
-    object.type = type
+  else if (type_is_list) {
+    temporary_object = {
+      ...temporary_object,
+      type: type.slice(1, -1),
+    }
+  } else {
+    temporary_object = {
+      ...temporary_object,
+      type,
+    }
+  }
 
-  if (type_is_list)
-    object.list = true
+  if (type_is_list) {
+    temporary_object = {
+      ...temporary_object,
+      list: true,
+    }
+  }
 
-  console.log(object)
+  return temporary_object
 }
 const index_check = (values_array, object) => {
   const tokenizer_array = []
@@ -56,44 +69,56 @@ const index_check = (values_array, object) => {
 
     return false
   })
+
   if (index) {
-    object.index = index
-    object.tokenizer = tokenizer_array
+    return {
+      ...object,
+      index,
+      tokenizer: tokenizer_array,
+    }
   }
+
+  return object
 }
 const other_options = (values_array, object) => {
+  let new_object = object
   values_array.forEach(value => {
-    if (value.includes('@upsert'))
-      object.upsert = true
-    else if (value.includes('@lang'))
-      object.lang = true
+    if (value.includes('@upsert')) {
+      new_object = {
+        ...object,
+        upsert: true,
+      }
+    } else if (value.includes('@lang')) {
+      new_object = {
+        ...object,
+        lang: true,
+      }
+    }
   })
+  return new_object
 }
 const create_json_schema = schema => {
-  const json_schema = []
-  Object.entries(schema).forEach(([key, value]) => {
-    const object = {
+  const json_schema = Object.entries(schema).map(([key, value]) => {
+    let object = {
       predicate: key,
     }
+
     const predicates_array = prepare_value_string(value)
-    console.log(
-        key, '|', value,
-    )
     try {
-      type_check(predicates_array[0], object)
+      object = type_check(predicates_array[0], object)
     } catch (error) {
       console.error(error)
     }
 
     predicates_array.shift()
     try {
-      index_check(predicates_array, object)
+      object = index_check(predicates_array, object)
     } catch (error) {
       console.error(error)
     }
 
-    other_options(predicates_array, object)
-    json_schema.push(object)
+    object = other_options(predicates_array, object)
+    return object
   })
   return json_schema
 }
