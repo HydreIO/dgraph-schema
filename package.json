@@ -5,7 +5,14 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "lint": "eslint --color --ext .js ."
+    "lint-old": "eslint --color --ext .js .",
+    "lint": "prettier-eslint $PWD/\"**/*.js\" --print-width 60 --list-different && eslint --color .",
+    "format": "prettier-eslint $PWD/\"**/*.js\" --print-width 60 --write"
+  },
+  "babel": {
+    "parserOpts": {
+      "allowAwaitOutsideFunction": true
+    }
   },
   "author": "",
   "license": "ISC",
@@ -17,10 +24,12 @@
     "grpc": "^1.24.2"
   },
   "devDependencies": {
-    "@sidy/eslint-config-sidy": "^1.3.11",
-    "babel-eslint": "^10.1.0",
-    "eslint": "^6.8.0",
-    "eslint-plugin-unicorn": "^19.0.1"
+    "@babel/core": "^7.9.6",
+    "@sidy/eslint-config-sidy": "^1.4.10",
+    "babel-eslint": "^11.0.0-beta.2",
+    "eslint": "^7.1.0",
+    "eslint-plugin-unicorn": "^20.0.0",
+    "prettier-eslint-cli": "^5.0.0"
   },
   "bin": "./cli.js"
 }
