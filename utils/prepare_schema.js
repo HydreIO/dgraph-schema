@@ -1,3 +1,6 @@
+const TYPES = [
+  'default', 'bool', 'datetime', 'float', 'geo', 'int', 'password', 'string', 'uid',
+]
 const prepare_value_string = predicate => {
   if (!predicate.endsWith('.'))
     throw new Error('Missing dot at the end of predicate, or incorrect spacing')
@@ -6,28 +9,13 @@ const prepare_value_string = predicate => {
   return predicate.split(' ').slice(0, -1)
 }
 const type_check = raw_type => {
-  const normal_types = [
-    'default', 'bool', 'datetime', 'float', 'geo', 'int', 'password', 'string', 'uid',
-  ]
-  const list_types = [
-    '[default]', '[bool]', '[datetime]', '[float]', '[geo]', '[int]', '[string]', '[uid]',
-  ]
-  const type_is_not_alist = normal_types.some(value => value === raw_type)
-  const type_is_list = list_types.some(value => value === raw_type)
+  const [is_list, normalized_type] = raw_type.match(/\[(.*?)]/) || [, raw_type]
+  const type = TYPES.find(dgraph_type => dgraph_type === normalized_type)
 
-  let type = ''
-  let list = false
-
-  if (!type_is_not_alist && !type_is_list)
-    throw new Error('Incorrect or missing type in predicate.')
-  else if (type_is_list) type = raw_type.slice(1, -1)
-  else type = raw_type
-
-  if (type_is_list) list = true
-
+  if (!type) throw new Error('Incorrect or missing type in predicate.')
   return {
+    list: !!is_list,
     type,
-    list,
   }
 }
 const index_check = values_array => {
