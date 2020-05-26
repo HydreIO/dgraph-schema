@@ -1,10 +1,10 @@
-#!/usr/bin/env node --experimental-specifier-resolution=node --harmony cli.js
+#!/usr/bin/env node
 import c from 'chalk'
 import program from 'commander'
 import util from 'util'
 
-import helper from './dgraph_helper'
-import utilities from './utils/cli_utils'
+import helper from './dgraph_helper.js'
+import utilities from './utils/cli_utils.js'
 
 const host_option = [
   '-H, --host <address>', 'The host address of your Dgraph DB',

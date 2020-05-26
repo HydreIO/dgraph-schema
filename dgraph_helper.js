@@ -3,11 +3,11 @@ import dgraph from 'dgraph-js'
 import {
   prepare_new_schema,
   prepare_current_schema,
-} from './utils/prepare_schema'
+} from './utils/prepare_schema.js'
 import {
   diff_schema_checker,
   diff_types_checker,
-} from './utils/diff_checker'
+} from './utils/diff_checker.js'
 
 const get_schema = async client =>
   (await client.newTxn().query('schema {}')).getJson()

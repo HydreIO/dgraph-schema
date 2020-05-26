@@ -2,7 +2,7 @@
   "name": "dgraph-schema-js",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "cli.js",
   "type": "module",
   "scripts": {
     "lint-old": "eslint --color --ext .js .",
@@ -31,5 +31,7 @@
     "eslint-plugin-unicorn": "^20.0.0",
     "prettier-eslint-cli": "^5.0.0"
   },
-  "bin": "./cli.js"
+  "bin": {
+    "dgraph-schema": "./cli.js"
+  }
 }
