@@ -1,0 +1,37 @@
+{
+  "name": "dgraph-schema-js",
+  "version": "1.0.0",
+  "description": "",
+  "main": "cli.js",
+  "type": "module",
+  "scripts": {
+    "lint-old": "eslint --color --ext .js .",
+    "lint": "prettier-eslint $PWD/\"**/*.js\" --print-width 60 --list-different && eslint --color .",
+    "format": "prettier-eslint $PWD/\"**/*.js\" --print-width 60 --write"
+  },
+  "babel": {
+    "parserOpts": {
+      "allowAwaitOutsideFunction": true
+    }
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^4.0.0",
+    "commander": "^5.1.0",
+    "deep-diff": "^1.0.2",
+    "dgraph-js": "^20.3.0",
+    "grpc": "^1.24.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.9.6",
+    "@sidy/eslint-config-sidy": "^1.4.10",
+    "babel-eslint": "^11.0.0-beta.2",
+    "eslint": "^7.1.0",
+    "eslint-plugin-unicorn": "^20.0.0",
+    "prettier-eslint-cli": "^5.0.0"
+  },
+  "bin": {
+    "dgraph-schema": "./cli.js"
+  }
+}
